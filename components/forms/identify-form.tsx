@@ -61,13 +61,6 @@ export function IdentifyForm() {
         p.className.toLowerCase().includes("coconut")
       );
 
-      if (isCoconut) {
-        toast.success("✅ This looks like a coconut.");
-      } else {
-        toast.error("❌ This is NOT recognized as a coconut.");
-        return;
-      }
-
       formData.append("imageLabels", labelText);
       const response = await fetch("/api/identify", { method: "POST", body: formData });
       const data = await response.json();

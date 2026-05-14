@@ -37,10 +37,6 @@ export async function POST(request: Request) {
     varieties
   );
 
-  if (matches.length === 0 || matches[0].confidence < 40) {
-    return NextResponse.json({ message: "Your image cannot recognize" }, { status: 400 });
-  }
-
   const uploaded = await uploadImageToCloudinary(file, "identify_uploads");
   const session = await getServerSession(authOptions);
   const uploadedImage = await prisma.uploadedImage.create({
