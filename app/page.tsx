@@ -32,8 +32,8 @@ export default async function HomePage() {
             <Badge className="border-primary/20 bg-primary/10 text-primary">About the system</Badge>
             <h2 className="mt-4 text-3xl font-semibold tracking-normal">Built for agricultural record keeping and field identification.</h2>
             <p className="mt-4 leading-7 text-muted-foreground">
-              The system centralizes coconut variety profiles, upload history, and mock identification results in one
-              secure dashboard. It is structured so a future machine learning model can replace the placeholder matching service.
+              The system centralizes coconut variety profiles, upload history, and record-based identification results in one
+              secure dashboard. It is structured so a future machine learning model can extend the current matching service.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { UploadCloud, Wand2 } from "lucide-react";
+import { Leaf, MapPin, Ruler, UploadCloud, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 type Match = {
   variety: {
@@ -23,6 +24,7 @@ type Match = {
   };
   confidence: number;
   reason: string;
+  matchedFields: string[];
 };
 
 export function IdentifyForm() {
@@ -50,7 +52,7 @@ export function IdentifyForm() {
       }
 
       setMatches(data.matches);
-      toast.success("Mock identification complete");
+      toast.success("Identification complete");
     });
   }
 
@@ -58,8 +60,8 @@ export function IdentifyForm() {
     <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
       <Card>
         <CardHeader>
-          <CardTitle>Upload coconut image</CardTitle>
-          <CardDescription>Use a clear image of the coconut fruit, crown, or whole palm.</CardDescription>
+          <CardTitle>Upload and describe sample</CardTitle>
+          <CardDescription>Use a clear image and add field observations to match against real variety records.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
@@ -75,6 +77,34 @@ export function IdentifyForm() {
               Choose image
               <Input name="image" type="file" accept="image/*" className="hidden" required onChange={onFileChange} />
             </Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fruitColor" className="flex items-center gap-2">
+                  <Leaf className="h-4 w-4 text-primary" /> Fruit color
+                </Label>
+                <Input id="fruitColor" name="fruitColor" placeholder="Green, yellow green, brown..." />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" /> Location found
+                </Label>
+                <Input id="location" name="location" placeholder="Magdiwang, Cajidiocan..." />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="treeHeight" className="flex items-center gap-2">
+                  <Ruler className="h-4 w-4 text-primary" /> Approximate tree height
+                </Label>
+                <Input id="treeHeight" name="treeHeight" placeholder="Short, tall, 8-12 meters, 20 meters..." />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="observations">Other characteristics</Label>
+                <Textarea
+                  id="observations"
+                  name="observations"
+                  placeholder="Describe crown, nut size, yield, dwarf/tall habit, aroma, coastal or upland farm conditions..."
+                />
+              </div>
+            </div>
             <Button className="w-full" type="submit" disabled={pending}>
               <Wand2 className="h-4 w-4" /> {pending ? "Analyzing..." : "Identify Coconut Variety"}
             </Button>
@@ -84,10 +114,10 @@ export function IdentifyForm() {
       <Card>
         <CardHeader>
           <CardTitle>Recommended matches</CardTitle>
-          <CardDescription>Placeholder matching now, ready to be replaced by an ML service later.</CardDescription>
+          <CardDescription>Matches are calculated from the coconut variety records saved in the database.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {matches.length === 0 ? <p className="text-sm text-muted-foreground">Upload an image to see possible varieties.</p> : null}
+          {matches.length === 0 ? <p className="text-sm text-muted-foreground">Upload an image and observations to see possible varieties.</p> : null}
           {matches.map((match, index) => (
             <div key={match.variety.id} className="rounded-lg border p-4">
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -95,6 +125,13 @@ export function IdentifyForm() {
                   <p className="text-xs font-medium uppercase text-muted-foreground">Match {index + 1}</p>
                   <h3 className="text-xl font-semibold">{match.variety.name}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{match.reason}</p>
+                  {match.matchedFields.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {match.matchedFields.map((field) => (
+                        <Badge key={field} className="bg-secondary text-secondary-foreground">{field}</Badge>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <Badge className="bg-primary text-primary-foreground">{match.confidence}% confidence</Badge>
               </div>
