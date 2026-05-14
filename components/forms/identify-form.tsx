@@ -70,6 +70,11 @@ export function IdentifyForm() {
         return;
       }
 
+      if(data.matches.length === 0){
+        toast.error("No matching coconut variety found. Try providing more details or a clearer image.");
+        return;
+      }
+      
       setMatches(data.matches);
       toast.success("Identification complete");
     });
