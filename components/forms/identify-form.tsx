@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Leaf, MapPin, Ruler, UploadCloud, Wand2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import * as mobilenet from "@tensorflow-models/mobilenet";
+import "@tensorflow/tfjs";
+import * as tmImage from "@teachablemachine/image";
 
 type Match = {
   variety: {
@@ -28,6 +31,7 @@ type Match = {
 };
 
 export function IdentifyForm() {
+  const imageRef = useRef<HTMLImageElement>(null);
   const [preview, setPreview] = useState("");
   const [matches, setMatches] = useState<Match[]>([]);
   const [pending, startTransition] = useTransition();
@@ -43,6 +47,28 @@ export function IdentifyForm() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
+      const imageElement = imageRef.current;
+      if (!imageElement) return;
+
+      const model = await mobilenet.load();
+
+      const predictions = await model.classify(imageElement);
+      const labelText = predictions.map((p) => p.className.toLowerCase()).join(" ");
+
+      console.log(predictions);
+
+      const isCoconut = predictions.some((p) =>
+        p.className.toLowerCase().includes("coconut")
+      );
+
+      if (isCoconut) {
+        toast.success("✅ This looks like a coconut.");
+      } else {
+        toast.error("❌ This is NOT recognized as a coconut.");
+        return;
+      }
+
+      formData.append("imageLabels", labelText);
       const response = await fetch("/api/identify", { method: "POST", body: formData });
       const data = await response.json();
 
@@ -67,7 +93,7 @@ export function IdentifyForm() {
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="overflow-hidden rounded-lg border bg-muted">
               {preview ? (
-                <Image src={preview} alt="Uploaded coconut preview" width={900} height={620} className="h-80 w-full object-cover" unoptimized />
+                <Image ref={imageRef} src={preview} alt="Uploaded coconut preview" width={900} height={620} className="h-80 w-full object-cover" unoptimized />
               ) : (
                 <div className="grid h-80 place-items-center text-sm text-muted-foreground">Image preview</div>
               )}

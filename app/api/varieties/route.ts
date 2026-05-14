@@ -15,13 +15,13 @@ export async function GET(request: Request) {
       AND: [
         q
           ? {
-              OR: [
-                { name: { contains: q, mode: "insensitive" } },
-                { localName: { contains: q, mode: "insensitive" } },
-                { description: { contains: q, mode: "insensitive" } },
-                { characteristics: { contains: q, mode: "insensitive" } }
-              ]
-            }
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { localName: { contains: q, mode: "insensitive" } },
+              { description: { contains: q, mode: "insensitive" } },
+              { characteristics: { contains: q, mode: "insensitive" } }
+            ]
+          }
           : {},
         location ? { locationFound: { contains: location, mode: "insensitive" } } : {}
       ]
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
   if (!isAdmin(session?.user.role)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
   const parsed = varietySchema.safeParse(await request.json());
+  console.log("Parsed data:", parsed);
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message || "Invalid data" }, { status: 400 });
 
   const variety = await prisma.coconutVariety.create({ data: parsed.data });

@@ -33,20 +33,41 @@ export function VarietyForm({ initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [preview, setPreview] = useState(initial?.imageUrl || "");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setSelectedFile(file);
     setPreview(URL.createObjectURL(file));
-    toast.info("Image preview ready. Configure Cloudinary or local storage to persist uploaded files.");
+    toast.info("Image preview ready. File will be uploaded to Cloudinary when saved.");
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const payload = Object.fromEntries(formData.entries());
+    const payload = Object.fromEntries(formData.entries()) as Record<string, string>;
 
     startTransition(async () => {
+      if (selectedFile) {
+        const uploadForm = new FormData();
+        uploadForm.append("image", selectedFile);
+
+        const uploadResponse = await fetch("/api/cloudinary/upload", {
+          method: "POST",
+          body: uploadForm
+        });
+
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json().catch(() => ({ message: "Unable to upload image" }));
+          toast.error(error.message || "Unable to upload image");
+          return;
+        }
+
+        const uploadData = await uploadResponse.json();
+        payload.imageUrl = uploadData.url || uploadData.secure_url || payload.imageUrl;
+      }
+
       const response = await fetch(initial?.id ? `/api/varieties/${initial.id}` : "/api/varieties", {
         method: initial?.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },

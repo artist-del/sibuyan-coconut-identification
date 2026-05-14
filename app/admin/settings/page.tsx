@@ -18,8 +18,8 @@ export default function SettingsPage() {
       <Card>
         <CardHeader><CardTitle>Image upload</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>Cloudinary variables are included in `.env.example` for production uploads.</p>
-          <p>The current form supports local image preview and URL persistence.</p>
+          <p>Cloudinary upload is enabled for varieties and identify workflow using the configured environment variables.</p>
+          <p>Choose an image in the admin form to upload directly to Cloudinary and persist the returned URL.</p>
         </CardContent>
       </Card>
     </div>

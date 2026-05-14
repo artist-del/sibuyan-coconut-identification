@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { identifyCoconutFromRecords } from "@/lib/identify-coconut";
 import { prisma } from "@/lib/prisma";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   const location = formData.get("location")?.toString();
   const treeHeight = formData.get("treeHeight")?.toString();
   const observations = formData.get("observations")?.toString();
+  const imageLabels = formData.get("imageLabels")?.toString();
 
   const varieties = await prisma.coconutVariety.findMany({ orderBy: { name: "asc" } });
   if (varieties.length === 0) {
@@ -29,16 +31,24 @@ export async function POST(request: Request) {
       fruitColor,
       location,
       treeHeight,
-      observations
+      observations,
+      imageLabels
     },
     varieties
   );
+
+  if (matches.length === 0 || matches[0].confidence < 40) {
+    return NextResponse.json({ message: "Your image cannot recognize" }, { status: 400 });
+  }
+
+  const uploaded = await uploadImageToCloudinary(file, "identify_uploads");
   const session = await getServerSession(authOptions);
   const uploadedImage = await prisma.uploadedImage.create({
     data: {
       fileName: file.name,
       mimeType: file.type || "application/octet-stream",
-      url: `/uploads/${Date.now()}-${file.name}`,
+      url: uploaded.secure_url,
+      publicId: uploaded.public_id,
       userId: session?.user.id
     }
   });

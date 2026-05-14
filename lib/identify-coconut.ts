@@ -6,6 +6,7 @@ export type IdentificationInput = {
   location?: string;
   treeHeight?: string;
   observations?: string;
+  imageLabels?: string;
 };
 
 export type IdentificationMatch = {
@@ -32,18 +33,21 @@ const stopWords = new Set([
 
 export function identifyCoconutFromRecords(input: IdentificationInput, varieties: CoconutVariety[]): IdentificationMatch[] {
   const observationText = normalize(
-    [input.fileName, input.fruitColor, input.location, input.treeHeight, input.observations].filter(Boolean).join(" ")
+    [input.fileName, input.fruitColor, input.location, input.treeHeight, input.observations, input.imageLabels]
+      .filter(Boolean)
+      .join(" ")
   );
   const observationTokens = tokenize(observationText);
 
   return varieties
     .map((variety) => scoreVariety(variety, input, observationTokens))
+    .filter((match) => match.matchedFields.length > 0)
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 5);
 }
 
 function scoreVariety(variety: CoconutVariety, input: IdentificationInput, observationTokens: string[]): IdentificationMatch {
-  let score = 25;
+  let score = 0;
   const matchedFields: string[] = [];
   const reasons: string[] = [];
 
@@ -89,13 +93,9 @@ function scoreVariety(variety: CoconutVariety, input: IdentificationInput, obser
     reasons.push(`matched traits: ${uniqueTokenHits.slice(0, 5).join(", ")}`);
   }
 
-  if (matchedFields.length === 0) {
-    reasons.push(`closest available profile from ${variety.locationFound} with ${variety.fruitColor.toLowerCase()} fruit`);
-  }
-
   return {
     variety,
-    confidence: Math.min(98, Math.max(35, score)),
+    confidence: Math.min(98, Math.max(0, score)),
     reason: reasons.join("; "),
     matchedFields
   };
