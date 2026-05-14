@@ -3,12 +3,17 @@ import { Inter } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 import "./globals.css";
+import { Leaf } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Sibuyan Coconut Identification System",
-  description: "Municipal-grade coconut variety records and identification for Sibuyan Island."
+  description: "Municipal-grade coconut variety records and identification for Sibuyan Island.",
+  icons: {
+    // Kinonvert natin ang vector lines ng Lucide leaf icon papuntang browser-readable data
+    icon: "/coconut.ico"
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
