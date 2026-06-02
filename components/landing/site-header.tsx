@@ -13,7 +13,7 @@ export function SiteHeader() {
           <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
             <Leaf className="h-5 w-5" />
           </span>
-          <span className="text-sm font-semibold sm:text-base">Sibuyan Coconut Identification System</span>
+          <span className="text-sm font-semibold sm:text-base">Cajidiocan Coconut Identification System</span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-medium text-white/85 md:flex">
           <Link href="/records" className="hover:text-white">Records</Link>

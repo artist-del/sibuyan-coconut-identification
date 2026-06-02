@@ -16,7 +16,7 @@ export function ExportButtons() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `sibuyan-coconut-records.${format}`;
+    link.download = `cajidiocan-coconut-records.${format}`;
     link.click();
     URL.revokeObjectURL(url);
   }

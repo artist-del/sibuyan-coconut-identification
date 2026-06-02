@@ -31,9 +31,9 @@ function SidebarContent({ onClose, isDialog = false }: { onClose?: () => void; i
         <div className="flex items-center gap-2">
           <Leaf className="h-6 w-6 text-primary" />
           {isDialog ? (
-            <DialogTitle className="font-semibold">Sibuyan Admin</DialogTitle>
+            <DialogTitle className="font-semibold">Cajidiocan Admin</DialogTitle>
           ) : (
-            <span className="font-semibold">Sibuyan Admin</span>
+            <span className="font-semibold">Cajidiocan Admin</span>
           )}
         </div>
         {onClose && (

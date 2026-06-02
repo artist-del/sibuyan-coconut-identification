@@ -35,7 +35,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold tracking-normal">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of Sibuyan coconut records and platform activity.</p>
+        <p className="text-muted-foreground">Overview of Cajidiocan coconut records and platform activity.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (

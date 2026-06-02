@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     return new NextResponse(varietiesToPdf(varieties), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=sibuyan-coconut-records.pdf"
+        "Content-Disposition": "attachment; filename=Cajidiocan-coconut-records.pdf"
       }
     });
   }
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   return new NextResponse(varietiesToCsv(varieties), {
     headers: {
       "Content-Type": "text/csv",
-      "Content-Disposition": "attachment; filename=sibuyan-coconut-records.csv"
+      "Content-Disposition": "attachment; filename=Cajidiocan-coconut-records.csv"
     }
   });
 }

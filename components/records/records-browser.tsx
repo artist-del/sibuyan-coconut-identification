@@ -80,7 +80,7 @@ export function RecordsBrowser({ initialVarieties }: { initialVarieties: RecordV
             </div>
             <CardHeader>
               <CardTitle>{item.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">{item.localName || item.scientificName || "Sibuyan coconut variety"}</p>
+              <p className="text-sm text-muted-foreground">{item.localName || item.scientificName || "Cajidiocan coconut variety"}</p>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-muted-foreground">
               <p>{item.description}</p>

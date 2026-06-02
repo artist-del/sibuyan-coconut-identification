@@ -18,7 +18,7 @@ export function Hero() {
           <Image
             key={src}
             src={src}
-            alt="Coconut farms and Sibuyan island landscape"
+            alt="Coconut farms and Cajidiocan landscape"
             fill
             priority={index === 0}
             className="hero-slide object-cover opacity-0"
@@ -30,13 +30,13 @@ export function Hero() {
       <div className="relative z-10 mx-auto flex min-h-[92vh] max-w-7xl items-center px-4 pb-20 pt-28 sm:px-6 lg:px-8">
         <div className="max-w-3xl text-white">
           <p className="mb-4 inline-flex rounded-md border border-white/30 bg-white/10 px-3 py-1 text-sm backdrop-blur animate-fade-up">
-            Coconut variety records for Sibuyan Island, Romblon
+            Coconut variety records for Cajidiocan, Romblon
           </p>
           <h1 className="text-4xl font-bold tracking-normal sm:text-6xl lg:text-7xl animate-fade-up">
-            Sibuyan Coconut Identification System
+            Cajidiocan Coconut Identification System
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-white/85 sm:text-lg animate-fade-up">
-            A responsive municipal agriculture platform for cataloging Sibuyan coconut varieties, supporting field uploads,
+            A responsive municipal agriculture platform for cataloging Cajidiocan coconut varieties, supporting field uploads,
             and preparing image-based identification workflows.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row animate-fade-up">

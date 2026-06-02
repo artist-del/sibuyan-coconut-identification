@@ -39,7 +39,7 @@ export default async function AdminVarietiesPage({ searchParams }: { searchParam
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-semibold tracking-normal">Coconut Varieties</h1>
-          <p className="text-muted-foreground">Search, filter, edit, export, and delete Sibuyan coconut records.</p>
+          <p className="text-muted-foreground">Search, filter, edit, export, and delete Cajidiocan coconut records.</p>
         </div>
         <div className="flex gap-2">
           <ExportButtons />

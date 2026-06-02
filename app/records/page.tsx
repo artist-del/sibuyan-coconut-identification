@@ -19,7 +19,7 @@ export default async function RecordsPage() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <h1 className="text-4xl font-semibold tracking-normal">Coconut Records</h1>
-            <p className="mt-3 text-muted-foreground">Browse documented coconut varieties found in Sibuyan Island.</p>
+            <p className="mt-3 text-muted-foreground">Browse documented coconut varieties found in Cajidiocan.</p>
           </div>
           <Button asChild><Link href="/identify">Identify Coconut Variety</Link></Button>
         </div>

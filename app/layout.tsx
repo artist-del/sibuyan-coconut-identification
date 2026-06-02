@@ -8,8 +8,8 @@ import { Leaf } from "lucide-react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Sibuyan Coconut Identification System",
-  description: "Municipal-grade coconut variety records and identification for Sibuyan Island.",
+  title: "Cajidiocan Coconut Identification System",
+  description: "Municipal-grade coconut variety records and identification for Cajidiocan Island.",
   icons: {
     // Kinonvert natin ang vector lines ng Lucide leaf icon papuntang browser-readable data
     icon: "/coconut.ico"

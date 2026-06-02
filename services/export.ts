@@ -19,7 +19,7 @@ export function varietiesToCsv(varieties: ExportVariety[]) {
 export function varietiesToPdf(varieties: ExportVariety[]) {
   const doc = new jsPDF();
   doc.setFontSize(16);
-  doc.text("Sibuyan Coconut Variety Records", 14, 18);
+  doc.text("Cajidiocan Coconut Variety Records", 14, 18);
   doc.setFontSize(10);
 
   varieties.forEach((variety, index) => {

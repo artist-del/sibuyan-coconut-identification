@@ -52,10 +52,10 @@ export default async function HomePage() {
       <section className="bg-secondary/45 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
-            <Badge className="border-accent/20 bg-accent/10 text-accent">Sibuyan coconut farming</Badge>
+            <Badge className="border-accent/20 bg-accent/10 text-accent">Cajidiocan coconut farming</Badge>
             <h2 className="mt-4 text-3xl font-semibold tracking-normal">A practical catalog for island-based production contexts.</h2>
             <p className="mt-4 leading-7 text-muted-foreground">
-              Sibuyan farms include coastal and upland planting areas where fruit color, palm height, yield, and location
+              Cajidiocan farms include coastal and upland planting areas where fruit color, palm height, yield, and location
               notes help agriculture staff compare varieties and advise growers.
             </p>
           </div>
@@ -78,9 +78,9 @@ export default async function HomePage() {
       </section>
       <footer className="border-t bg-background py-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 text-sm text-muted-foreground sm:px-6 lg:px-8">
-          <p className="font-semibold text-foreground">Sibuyan Coconut Identification System</p>
-          <p>Municipal Agriculture Office support platform for Sibuyan Island, Romblon.</p>
-          <p>Email: agriculture@sibuyan.gov.ph | Phone: +63 42 000 0000</p>
+          <p className="font-semibold text-foreground">Cajidiocan Coconut Identification System</p>
+          <p>Municipal Agriculture Office support platform for Cajidiocan, Romblon.</p>
+          <p>Email: agriculture@cajidiocan.gov.ph | Phone: +63 42 000 0000</p>
         </div>
       </footer>
     </main>

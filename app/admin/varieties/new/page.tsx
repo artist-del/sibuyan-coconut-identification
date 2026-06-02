@@ -5,7 +5,7 @@ export default function NewVarietyPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold tracking-normal">Add Variety</h1>
-        <p className="text-muted-foreground">Create a coconut variety profile for Sibuyan Island.</p>
+        <p className="text-muted-foreground">Create a coconut variety profile for Cajidiocan.</p>
       </div>
       <VarietyForm />
     </div>

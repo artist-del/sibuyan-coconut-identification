@@ -100,7 +100,7 @@ export function VarietyForm({ initial }: Props) {
             <Field name="treeHeight" label="Tree height" defaultValue={initial?.treeHeight} required />
             <Field name="fruitColor" label="Fruit color" defaultValue={initial?.fruitColor} required />
             <Field name="averageYield" label="Average yield" defaultValue={initial?.averageYield} required />
-            <Field name="locationFound" label="Location/barangay in Sibuyan" defaultValue={initial?.locationFound} required />
+            <Field name="locationFound" label="Location/barangay in Cajidiocan" defaultValue={initial?.locationFound} required />
             <Field name="imageUrl" label="Image URL" defaultValue={initial?.imageUrl} onChange={(value) => setPreview(value)} />
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="description">Description</Label>
