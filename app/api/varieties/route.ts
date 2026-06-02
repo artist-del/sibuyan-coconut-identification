@@ -34,16 +34,22 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!isAdmin(session?.user.role)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  if (!session?.user?.id) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const parsed = varietySchema.safeParse(await request.json());
-  console.log("Parsed data:", parsed);
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message || "Invalid data" }, { status: 400 });
 
-  const variety = await prisma.coconutVariety.create({ data: parsed.data });
-  await prisma.activityLog.create({
-    data: { action: "Created", entity: "CoconutVariety", entityId: variety.id, userId: session?.user.id }
-  });
-
-  return NextResponse.json(variety, { status: 201 });
+  try {
+    const variety = await prisma.coconutVariety.create({ data: parsed.data });
+    await prisma.activityLog.create({
+      data: { action: "Created", entity: "CoconutVariety", entityId: variety.id, userId: session.user.id }
+    });
+    return NextResponse.json(variety, { status: 201 });
+  } catch (error: any) {
+    // Handle unique constraint violation
+    if (error?.code === "P2002") {
+      return NextResponse.json({ message: "A variety with this name already exists. Please choose a different name." }, { status: 409 });
+    }
+    throw error;
+  }
 }

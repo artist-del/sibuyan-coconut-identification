@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Save, Upload } from "lucide-react";
@@ -27,10 +27,12 @@ type Props = {
     locationFound?: string;
     imageUrl?: string | null;
   };
+  successRedirect?: string;
 };
 
-export function VarietyForm({ initial }: Props) {
+export function VarietyForm({ initial, successRedirect }: Props) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [preview, setPreview] = useState(initial?.imageUrl || "");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -81,7 +83,17 @@ export function VarietyForm({ initial }: Props) {
       }
 
       toast.success(initial?.id ? "Variety updated" : "Variety created");
-      router.push("/admin/varieties");
+      
+      // If creating new variety from user dashboard, clear form and stay on page
+      if (!initial?.id && successRedirect) {
+        formRef.current?.reset();
+        setPreview("");
+        setSelectedFile(null);
+        return;
+      }
+      
+      // Otherwise redirect as usual
+      router.push(successRedirect ?? "/admin/varieties");
       router.refresh();
     });
   }
@@ -92,7 +104,7 @@ export function VarietyForm({ initial }: Props) {
         <CardTitle>{initial?.id ? "Edit coconut variety" : "Add coconut variety"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form className="grid gap-5 lg:grid-cols-[1fr_320px]" onSubmit={onSubmit}>
+        <form ref={formRef} className="grid gap-5 lg:grid-cols-[1fr_320px]" onSubmit={onSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
             <Field name="name" label="Variety name" defaultValue={initial?.name} required />
             <Field name="scientificName" label="Scientific name" defaultValue={initial?.scientificName} />
