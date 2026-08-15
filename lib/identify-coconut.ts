@@ -1,12 +1,15 @@
 import type { CoconutVariety } from "@prisma/client";
 
 export type IdentificationInput = {
-  fileName: string;
-  fruitColor?: string;
-  location?: string;
-  treeHeight?: string;
-  observations?: string;
   imageLabels?: string;
+  imageFeatures?: string;
+};
+
+export type TrainingExampleInput = {
+  coconutVarietyId?: string | null;
+  imageLabels?: string | null;
+  imageFeatures: string;
+  isNotCoconut?: boolean;
 };
 
 export type IdentificationMatch = {
@@ -31,43 +34,45 @@ const stopWords = new Set([
   "found"
 ]);
 
-export function identifyCoconutFromRecords(input: IdentificationInput, varieties: CoconutVariety[]): IdentificationMatch[] {
+export function identifyCoconutFromRecords(
+  input: IdentificationInput,
+  varieties: CoconutVariety[],
+  trainingExamples: TrainingExampleInput[] = []
+): IdentificationMatch[] {
   const observationText = normalize(
-    [input.fileName, input.fruitColor, input.location, input.treeHeight, input.observations, input.imageLabels]
+    [input.imageLabels, input.imageFeatures]
       .filter(Boolean)
       .join(" ")
   );
   const observationTokens = tokenize(observationText);
+  const trainingMatches = scoreTrainingExamples(observationTokens, trainingExamples);
 
   return varieties
-    .map((variety) => scoreVariety(variety, input, observationTokens))
+    .map((variety) => scoreVariety(variety, observationTokens, trainingMatches.get(variety.id) ?? 0))
     .filter((match) => match.matchedFields.length > 0)
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 5);
 }
 
-function scoreVariety(variety: CoconutVariety, input: IdentificationInput, observationTokens: string[]): IdentificationMatch {
+export function findSimilarNotCoconutExample(
+  input: IdentificationInput,
+  trainingExamples: TrainingExampleInput[],
+  threshold = 0.8
+) {
+  const observationTokens = tokenize([input.imageLabels, input.imageFeatures].filter(Boolean).join(" "));
+
+  return trainingExamples
+    .filter((example) => example.isNotCoconut)
+    .some((example) => {
+      const exampleTokens = tokenize([example.imageLabels, example.imageFeatures].filter(Boolean).join(" "));
+      return jaccardSimilarity(observationTokens, exampleTokens) >= threshold;
+    });
+}
+
+function scoreVariety(variety: CoconutVariety, observationTokens: string[], trainingBoost: number): IdentificationMatch {
   let score = 0;
   const matchedFields: string[] = [];
   const reasons: string[] = [];
-
-  if (input.fruitColor && fuzzyIncludes(variety.fruitColor, input.fruitColor)) {
-    score += 24;
-    matchedFields.push("fruit color");
-    reasons.push(`fruit color is close to ${variety.fruitColor}`);
-  }
-
-  if (input.location && fuzzyIncludes(variety.locationFound, input.location)) {
-    score += 22;
-    matchedFields.push("location");
-    reasons.push(`recorded in ${variety.locationFound}`);
-  }
-
-  if (input.treeHeight && fuzzyIncludes(variety.treeHeight, input.treeHeight)) {
-    score += 16;
-    matchedFields.push("tree height");
-    reasons.push(`height profile matches ${variety.treeHeight}`);
-  }
 
   const searchableRecord = normalize(
     [
@@ -88,25 +93,51 @@ function scoreVariety(variety: CoconutVariety, input: IdentificationInput, obser
   const tokenHits = observationTokens.filter((token) => searchableRecord.includes(token));
   const uniqueTokenHits = [...new Set(tokenHits)];
   if (uniqueTokenHits.length > 0) {
-    score += Math.min(24, uniqueTokenHits.length * 4);
-    matchedFields.push("observed traits");
-    reasons.push(`matched traits: ${uniqueTokenHits.slice(0, 5).join(", ")}`);
+    score += Math.min(92, uniqueTokenHits.length * 12);
+    matchedFields.push("image features");
+    reasons.push(`image features matched: ${uniqueTokenHits.slice(0, 5).join(", ")}`);
+  }
+
+  if (trainingBoost > 0) {
+    score += trainingBoost;
+    matchedFields.push("admin correction");
+    reasons.push(`similar to admin-corrected image examples`);
   }
 
   return {
     variety,
-    confidence: Math.min(98, Math.max(0, score)),
+    confidence: Math.min(100, Math.max(0, Math.round(score))),
     reason: reasons.join("; "),
     matchedFields
   };
 }
 
-function fuzzyIncludes(recordValue: string, inputValue: string) {
-  const record = normalize(recordValue);
-  const input = normalize(inputValue);
+function scoreTrainingExamples(observationTokens: string[], trainingExamples: TrainingExampleInput[]) {
+  const boosts = new Map<string, number>();
 
-  if (!record || !input) return false;
-  return record.includes(input) || input.includes(record) || input.split(/\s+/).some((part) => part.length > 2 && record.includes(part));
+  for (const example of trainingExamples) {
+    if (example.isNotCoconut || !example.coconutVarietyId) continue;
+
+    const exampleTokens = tokenize([example.imageLabels, example.imageFeatures].filter(Boolean).join(" "));
+    const similarity = jaccardSimilarity(observationTokens, exampleTokens);
+    if (similarity <= 0) continue;
+
+    const boost = similarity >= 0.8 ? 70 : Math.round(similarity * 55);
+    const existing = boosts.get(example.coconutVarietyId) ?? 0;
+    boosts.set(example.coconutVarietyId, Math.max(existing, boost));
+  }
+
+  return boosts;
+}
+
+function jaccardSimilarity(first: string[], second: string[]) {
+  const firstSet = new Set(first);
+  const secondSet = new Set(second);
+  if (firstSet.size === 0 || secondSet.size === 0) return 0;
+
+  const intersection = [...firstSet].filter((token) => secondSet.has(token)).length;
+  const union = new Set([...firstSet, ...secondSet]).size;
+  return intersection / union;
 }
 
 function tokenize(value: string) {

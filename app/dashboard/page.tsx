@@ -5,7 +5,6 @@ import { Leaf } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { SiteHeader } from "@/components/landing/site-header";
 import { UserProfileForm } from "@/components/forms/user-profile-form";
-import { VarietyForm } from "@/components/forms/variety-form";
 
 export const dynamic = "force-dynamic";
 
@@ -29,15 +28,14 @@ export default async function DashboardPage() {
               <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
                 <Leaf className="h-4 w-4" /> User dashboard
               </p>
-              <h1 className="mt-4 text-3xl font-semibold tracking-normal">Manage your profile and add a coconut variety</h1>
+              <h1 className="mt-4 text-3xl font-semibold tracking-normal">Manage your profile</h1>
               <p className="mt-2 max-w-2xl text-muted-foreground">
-                Update your account details and contribute new coconut variety records for Cajidiocan.
+                Update your account details. Coconut variety records are managed by administrators.
               </p>
             </div>
           </div>
           <div className="space-y-8">
             <UserProfileForm user={{ name: session.user.name ?? "", email: session.user.email ?? "" }} />
-            <VarietyForm successRedirect="/dashboard" />
           </div>
         </div>
       </div>

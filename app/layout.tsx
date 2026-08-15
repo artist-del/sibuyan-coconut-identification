@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 import "./globals.css";
-import { Leaf } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
 

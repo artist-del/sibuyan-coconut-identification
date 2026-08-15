@@ -43,6 +43,7 @@ model CoconutVariety {
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
   identificationHistory IdentificationHistory[]
+  trainingExamples      TrainingExample[]
 }
 
 model UploadedImage {
@@ -61,6 +62,8 @@ model IdentificationHistory {
   id               String          @id @default(auto()) @map("_id") @db.ObjectId
   confidence       Float
   notes            String?
+  imageLabels      String?
+  imageFeatures    String?
   userId           String?         @db.ObjectId
   uploadedImageId  String?         @unique @db.ObjectId
   coconutVarietyId String?         @db.ObjectId
@@ -68,6 +71,21 @@ model IdentificationHistory {
   user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   uploadedImage    UploadedImage?  @relation(fields: [uploadedImageId], references: [id], onDelete: SetNull)
   coconutVariety   CoconutVariety? @relation(fields: [coconutVarietyId], references: [id], onDelete: SetNull)
+}
+
+model TrainingExample {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  imageLabels      String?
+  imageFeatures    String
+  isNotCoconut     Boolean        @default(false)
+  sourceHistoryId  String?        @db.ObjectId
+  coconutVarietyId String?        @db.ObjectId
+  createdById      String?        @db.ObjectId
+  createdAt        DateTime       @default(now())
+  coconutVariety   CoconutVariety? @relation(fields: [coconutVarietyId], references: [id], onDelete: SetNull)
+
+  @@index([coconutVarietyId])
+  @@index([isNotCoconut])
 }
 
 model ActivityLog {

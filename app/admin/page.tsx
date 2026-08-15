@@ -8,10 +8,10 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const [varieties, users, uploads, recent, logs] = await Promise.all([
+  const [varieties, users, scans, recent, logs] = await Promise.all([
     prisma.coconutVariety.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.user.count(),
-    prisma.uploadedImage.count(),
+    prisma.user.count({ where: { role: "USER" } }),
+    prisma.identificationHistory.count(),
     prisma.coconutVariety.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
     prisma.activityLog.findMany({ take: 5, orderBy: { createdAt: "desc" }, include: { user: true } })
   ]);
@@ -27,7 +27,7 @@ export default async function AdminDashboardPage() {
   const stats = [
     { label: "Total coconut varieties", value: varieties.length, icon: Leaf },
     { label: "Registered users", value: users, icon: Users },
-    { label: "Uploaded images", value: uploads, icon: UploadCloud },
+    { label: "Identification scans", value: scans, icon: UploadCloud },
     { label: "Activity logs", value: logs.length, icon: Activity }
   ];
 

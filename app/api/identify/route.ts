@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
-import { identifyCoconutFromRecords } from "@/lib/identify-coconut";
+import { findSimilarNotCoconutExample, identifyCoconutFromRecords } from "@/lib/identify-coconut";
 import { prisma } from "@/lib/prisma";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
@@ -14,28 +14,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Image is required" }, { status: 400 });
   }
 
-  const fruitColor = formData.get("fruitColor")?.toString();
-  const location = formData.get("location")?.toString();
-  const treeHeight = formData.get("treeHeight")?.toString();
-  const observations = formData.get("observations")?.toString();
   const imageLabels = formData.get("imageLabels")?.toString();
+  const imageFeatures = formData.get("imageFeatures")?.toString();
 
-  const varieties = await prisma.coconutVariety.findMany({ orderBy: { name: "asc" } });
+  const [varieties, trainingExamples] = await Promise.all([
+    prisma.coconutVariety.findMany({ orderBy: { name: "asc" } }),
+    prisma.trainingExample.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: {
+        coconutVarietyId: true,
+        imageLabels: true,
+        imageFeatures: true,
+        isNotCoconut: true
+      }
+    })
+  ]);
   if (varieties.length === 0) {
     return NextResponse.json({ message: "No coconut variety records are available yet." }, { status: 400 });
   }
 
-  const matches = identifyCoconutFromRecords(
-    {
-      fileName: file.name,
-      fruitColor,
-      location,
-      treeHeight,
-      observations,
-      imageLabels
-    },
-    varieties
-  );
+  const identificationInput = {
+    imageLabels,
+    imageFeatures
+  };
+  const isKnownNotCoconut = findSimilarNotCoconutExample(identificationInput, trainingExamples);
+  const matches = isKnownNotCoconut
+    ? []
+    : identifyCoconutFromRecords(
+        identificationInput,
+        varieties,
+        trainingExamples
+      );
 
   const uploaded = await uploadImageToCloudinary(file, "identify_uploads");
   const session = await getServerSession(authOptions);
@@ -52,12 +62,24 @@ export async function POST(request: Request) {
   await prisma.identificationHistory.create({
     data: {
       confidence: matches[0]?.confidence || 0,
-      notes: `Record-based identification. Observations: ${[fruitColor, location, treeHeight, observations].filter(Boolean).join(" | ") || "image only"}`,
+      notes: isKnownNotCoconut
+        ? `Rejected by admin learning: image does not match coconut examples. Features: ${[imageLabels, imageFeatures].filter(Boolean).join(" | ") || "none"}`
+        : `Image-based identification. Features: ${[imageLabels, imageFeatures].filter(Boolean).join(" | ") || "none"}`,
+      imageLabels,
+      imageFeatures,
       userId: session?.user.id,
       uploadedImageId: uploadedImage.id,
       coconutVarietyId: matches[0]?.variety.id
     }
   });
 
-  return NextResponse.json({ matches });
+  if (isKnownNotCoconut) {
+    return NextResponse.json({
+      matches: [],
+      rejected: true,
+      message: "Cannot identify because the uploaded image does not match a coconut image."
+    });
+  }
+
+  return NextResponse.json({ matches, rejected: false });
 }

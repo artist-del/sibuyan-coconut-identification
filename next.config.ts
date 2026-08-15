@@ -2,9 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: process.cwd(),
-  eslint: {
-    ignoreDuringBuilds: true
-  },
+  agentRules: false,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

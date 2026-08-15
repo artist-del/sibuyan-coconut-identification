@@ -29,7 +29,7 @@ export async function PATCH(request: Request) {
         });
 
         return NextResponse.json({ id: user.id, name: user.name, email: user.email });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ message: "Email is already in use" }, { status: 409 });
     }
 }
