@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Menu, BarChart3, ClipboardCheck, Leaf, LogOut, PlusCircle, Settings, Users, X } from "lucide-react";
+import { Menu, BarChart3, ClipboardCheck, Leaf, LogOut, Settings, Users, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogTitle } from "@/components/ui/dialog";
@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 const items = [
   { href: "/admin", label: "Dashboard", icon: BarChart3 },
   { href: "/admin/varieties", label: "Coconut Varieties", icon: Leaf },
-  { href: "/admin/varieties/new", label: "Add Variety", icon: PlusCircle },
   { href: "/admin/identifications", label: "Identifications", icon: ClipboardCheck },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings }

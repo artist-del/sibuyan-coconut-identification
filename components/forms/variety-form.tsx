@@ -29,9 +29,11 @@ type Props = {
     imageUrl?: string | null;
   };
   successRedirect?: string;
+  onSaved?: () => void;
+  framed?: boolean;
 };
 
-export function VarietyForm({ initial, successRedirect }: Props) {
+export function VarietyForm({ initial, successRedirect, onSaved, framed = true }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -94,6 +96,16 @@ export function VarietyForm({ initial, successRedirect }: Props) {
       toast.success(initial?.id ? "Variety updated" : "Variety created");
       setConfirmOpen(false);
       
+      if (onSaved) {
+        if (!initial?.id) {
+          formRef.current?.reset();
+          setPreview("");
+          setSelectedFile(null);
+        }
+        onSaved();
+        return;
+      }
+
       if (!initial?.id && successRedirect) {
         formRef.current?.reset();
         setPreview("");
@@ -106,52 +118,58 @@ export function VarietyForm({ initial, successRedirect }: Props) {
     });
   }
 
+  const form = (
+    <form ref={formRef} className="grid gap-5 lg:grid-cols-[1fr_320px]" onSubmit={onSubmit}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field name="name" label="Variety name" defaultValue={initial?.name} required />
+        <Field name="scientificName" label="Scientific name" defaultValue={initial?.scientificName} />
+        <Field name="localName" label="Local name" defaultValue={initial?.localName} />
+        <Field name="treeHeight" label="Tree height" defaultValue={initial?.treeHeight} required />
+        <Field name="fruitColor" label="Fruit color" defaultValue={initial?.fruitColor} required />
+        <Field name="averageYield" label="Average yield" defaultValue={initial?.averageYield} required />
+        <Field name="locationFound" label="Location/barangay in Cajidiocan" defaultValue={initial?.locationFound} required />
+        <Field name="imageUrl" label="Image URL" defaultValue={initial?.imageUrl} onChange={(value) => setPreview(value)} />
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea id="description" name="description" required defaultValue={initial?.description} />
+        </div>
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="characteristics">Characteristics</Label>
+          <Textarea id="characteristics" name="characteristics" required defaultValue={initial?.characteristics} />
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div className="overflow-hidden rounded-lg border bg-muted">
+          {preview ? (
+            <Image src={preview} alt="Coconut preview" width={640} height={420} className="h-64 w-full object-cover" unoptimized />
+          ) : (
+            <div className="grid h-64 place-items-center text-sm text-muted-foreground">Image preview</div>
+          )}
+        </div>
+        <Label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed p-4 text-sm">
+          <Upload className="h-4 w-4" />
+          Upload image preview
+          <Input type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+        </Label>
+        <Button type="submit" className="w-full" disabled={pending}>
+          <Save className="h-4 w-4" /> {pending ? "Saving..." : "Save variety"}
+        </Button>
+      </div>
+    </form>
+  );
+
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{initial?.id ? "Edit coconut variety" : "Add coconut variety"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form ref={formRef} className="grid gap-5 lg:grid-cols-[1fr_320px]" onSubmit={onSubmit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field name="name" label="Variety name" defaultValue={initial?.name} required />
-              <Field name="scientificName" label="Scientific name" defaultValue={initial?.scientificName} />
-              <Field name="localName" label="Local name" defaultValue={initial?.localName} />
-              <Field name="treeHeight" label="Tree height" defaultValue={initial?.treeHeight} required />
-              <Field name="fruitColor" label="Fruit color" defaultValue={initial?.fruitColor} required />
-              <Field name="averageYield" label="Average yield" defaultValue={initial?.averageYield} required />
-              <Field name="locationFound" label="Location/barangay in Cajidiocan" defaultValue={initial?.locationFound} required />
-              <Field name="imageUrl" label="Image URL" defaultValue={initial?.imageUrl} onChange={(value) => setPreview(value)} />
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" name="description" required defaultValue={initial?.description} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="characteristics">Characteristics</Label>
-                <Textarea id="characteristics" name="characteristics" required defaultValue={initial?.characteristics} />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="overflow-hidden rounded-lg border bg-muted">
-                {preview ? (
-                  <Image src={preview} alt="Coconut preview" width={640} height={420} className="h-64 w-full object-cover" unoptimized />
-                ) : (
-                  <div className="grid h-64 place-items-center text-sm text-muted-foreground">Image preview</div>
-                )}
-              </div>
-              <Label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed p-4 text-sm">
-                <Upload className="h-4 w-4" />
-                Upload image preview
-                <Input type="file" accept="image/*" className="hidden" onChange={onFileChange} />
-              </Label>
-              <Button type="submit" className="w-full" disabled={pending}>
-                <Save className="h-4 w-4" /> {pending ? "Saving..." : "Save variety"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      {framed ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{initial?.id ? "Edit coconut variety" : "Add coconut variety"}</CardTitle>
+          </CardHeader>
+          <CardContent>{form}</CardContent>
+        </Card>
+      ) : (
+        form
+      )}
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-export function DeleteVarietyButton({ id, name }: { id: string; name: string }) {
+export function DeleteVarietyButton({ id, name, onDeleted }: { id: string; name: string; onDeleted?: () => void }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -20,6 +20,7 @@ export function DeleteVarietyButton({ id, name }: { id: string; name: string }) 
         return;
       }
       toast.success("Variety deleted");
+      onDeleted?.();
       router.refresh();
     });
   }
