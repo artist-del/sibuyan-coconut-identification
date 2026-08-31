@@ -7,22 +7,49 @@ import { varietySchema } from "@/lib/validators";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const variety = await prisma.coconutVariety.findUnique({ where: { id } });
+  const variety = await prisma.coconutVariety.findUnique({
+    where: { id },
+    include: {
+      imageUploadedBy: {
+        select: { name: true }
+      }
+    }
+  });
   if (!variety) return NextResponse.json({ message: "Not found" }, { status: 404 });
   return NextResponse.json(variety);
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!isAdmin(session?.user.role)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  if (!session?.user?.id) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const parsed = varietySchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message || "Invalid data" }, { status: 400 });
 
-  const variety = await prisma.coconutVariety.update({ where: { id }, data: parsed.data });
+  const existing = await prisma.coconutVariety.findUnique({
+    where: { id },
+    select: { id: true, imageUploadedById: true }
+  });
+  if (!existing) return NextResponse.json({ message: "Not found" }, { status: 404 });
+  if (!isAdmin(session.user.role) && existing.imageUploadedById !== session.user.id) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
+  const variety = await prisma.coconutVariety.update({
+    where: { id },
+    data: {
+      ...parsed.data,
+      imageUploadedById: parsed.data.imageFeatures || !isAdmin(session.user.role) ? session.user.id : undefined
+    },
+    include: {
+      imageUploadedBy: {
+        select: { name: true }
+      }
+    }
+  });
   await prisma.activityLog.create({
-    data: { action: "Updated", entity: "CoconutVariety", entityId: variety.id, userId: session?.user.id }
+    data: { action: "Updated", entity: "CoconutVariety", entityId: variety.id, userId: session.user.id }
   });
   return NextResponse.json(variety);
 }

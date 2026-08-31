@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import type { Session } from "next-auth";
 import { signOut, useSession } from "next-auth/react";
 import { LogIn, LogOut, Shield, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-export function AccountActions({ compact = false }: { compact?: boolean }) {
+export function AccountActions({ compact = false, initialSession = null }: { compact?: boolean; initialSession?: Session | null }) {
   const { data: session, status } = useSession();
+  const activeSession = session ?? (status === "loading" ? initialSession : null);
 
-  if (status === "loading") {
+  if (status === "loading" && !activeSession) {
     return (
       <Button variant="outline" size={compact ? "icon" : "default"} disabled>
         <User className="h-4 w-4" />
@@ -18,7 +20,7 @@ export function AccountActions({ compact = false }: { compact?: boolean }) {
     );
   }
 
-  if (!session?.user) {
+  if (!activeSession?.user) {
     return (
       <Button asChild variant="secondary" size={compact ? "icon" : "default"}>
         <Link href="/auth/login" aria-label="Sign in">
@@ -31,7 +33,7 @@ export function AccountActions({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className="flex items-center gap-2">
-      {session.user.role === "ADMIN" ? (
+      {activeSession.user.role === "ADMIN" ? (
         <Button asChild variant="secondary" size={compact ? "icon" : "default"}>
           <Link href="/admin" aria-label="Admin dashboard">
             <Shield className="h-4 w-4" />

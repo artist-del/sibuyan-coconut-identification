@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { analyzeImageFile, optimizeImageFile } from "@/lib/image-analysis";
 import type { VarietyInput } from "@/lib/validators";
 
 type Props = {
@@ -27,13 +28,17 @@ type Props = {
     averageYield?: string;
     locationFound?: string;
     imageUrl?: string | null;
+    imageLabels?: string | null;
+    imageFeatures?: string | null;
   };
   successRedirect?: string;
   onSaved?: () => void;
   framed?: boolean;
+  requireImage?: boolean;
+  showImageUrlField?: boolean;
 };
 
-export function VarietyForm({ initial, successRedirect, onSaved, framed = true }: Props) {
+export function VarietyForm({ initial, successRedirect, onSaved, framed = true, requireImage = false, showImageUrlField = true }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -62,9 +67,23 @@ export function VarietyForm({ initial, successRedirect, onSaved, framed = true }
     const payload = Object.fromEntries(formData.entries()) as Record<string, string>;
 
     startTransition(async () => {
+      if (requireImage && !selectedFile && !initial?.imageUrl) {
+        toast.error("Upload an image before saving this variety.");
+        return;
+      }
+
       if (selectedFile) {
+        const imageAnalysis = await analyzeImageFile(selectedFile).catch(() => null);
+        if (!imageAnalysis) {
+          toast.error("Unable to process the variety image. Try a smaller or clearer image.");
+          return;
+        }
+        payload.imageLabels = imageAnalysis.labels;
+        payload.imageFeatures = imageAnalysis.features;
+
+        const optimizedFile = await optimizeImageFile(selectedFile);
         const uploadForm = new FormData();
-        uploadForm.append("image", selectedFile);
+        uploadForm.append("image", optimizedFile);
 
         const uploadResponse = await fetch("/api/cloudinary/upload", {
           method: "POST",
@@ -128,7 +147,7 @@ export function VarietyForm({ initial, successRedirect, onSaved, framed = true }
         <Field name="fruitColor" label="Fruit color" defaultValue={initial?.fruitColor} required />
         <Field name="averageYield" label="Average yield" defaultValue={initial?.averageYield} required />
         <Field name="locationFound" label="Location/barangay in Cajidiocan" defaultValue={initial?.locationFound} required />
-        <Field name="imageUrl" label="Image URL" defaultValue={initial?.imageUrl} onChange={(value) => setPreview(value)} />
+        {showImageUrlField ? <Field name="imageUrl" label="Image URL" defaultValue={initial?.imageUrl} onChange={(value) => setPreview(value)} /> : null}
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="description">Description</Label>
           <Textarea id="description" name="description" required defaultValue={initial?.description} />

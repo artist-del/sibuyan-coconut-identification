@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
-import { Eye, UploadCloud, Wand2 } from "lucide-react";
+import { Eye, Maximize2, UploadCloud, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import * as mobilenet from "@tensorflow-models/mobilenet";
-import "@tensorflow/tfjs";
+import { analyzeImageFile, optimizeImageFile } from "@/lib/image-analysis";
 
 type Match = {
   variety: {
@@ -33,21 +32,18 @@ type Match = {
   matchedFields: string[];
 };
 
-type ImageAnalysis = {
-  features: string;
-  steps: string[];
-};
-
 export function IdentifyForm() {
-  const imageRef = useRef<HTMLImageElement>(null);
   const [preview, setPreview] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [processSteps, setProcessSteps] = useState<string[]>([]);
+  const [fullSizeImage, setFullSizeImage] = useState<{ url: string; name: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setSelectedFile(file);
     setPreview(URL.createObjectURL(file));
   }
 
@@ -56,19 +52,22 @@ export function IdentifyForm() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const imageElement = imageRef.current;
-      if (!imageElement) return;
+      if (!selectedFile) {
+        toast.error("Choose an image first");
+        return;
+      }
 
-      const model = await mobilenet.load();
+      let imageAnalysis;
+      try {
+        imageAnalysis = await analyzeImageFile(selectedFile);
+      } catch {
+        toast.error("Unable to process this image. Try a smaller or clearer image.");
+        return;
+      }
 
-      const predictions = await model.classify(imageElement);
-      const labelText = predictions
-        .filter((prediction) => prediction.probability >= 0.05)
-        .map((prediction) => prediction.className.toLowerCase())
-        .join(" ");
-      const imageAnalysis = analyzeCoconutImage(imageElement);
-
-      formData.append("imageLabels", labelText);
+      const optimizedFile = await optimizeImageFile(selectedFile);
+      formData.set("image", optimizedFile);
+      formData.append("imageLabels", imageAnalysis.labels);
       formData.append("imageFeatures", imageAnalysis.features);
       const response = await fetch("/api/identify", { method: "POST", body: formData });
       const data = await response.json();
@@ -107,7 +106,7 @@ export function IdentifyForm() {
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="overflow-hidden rounded-lg border bg-muted">
               {preview ? (
-                <Image ref={imageRef} src={preview} alt="Uploaded coconut preview" width={900} height={620} className="h-80 w-full object-cover" unoptimized />
+                <Image src={preview} alt="Uploaded coconut preview" width={900} height={620} className="h-80 w-full object-cover" unoptimized />
               ) : (
                 <div className="grid h-80 place-items-center text-sm text-muted-foreground">Image preview</div>
               )}
@@ -163,7 +162,7 @@ export function IdentifyForm() {
                         <Eye className="h-4 w-4" /> View Details
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-4 sm:p-6">
                       <DialogHeader>
                         <DialogTitle>{match.variety.name}</DialogTitle>
                         <DialogDescription>
@@ -172,8 +171,23 @@ export function IdentifyForm() {
                       </DialogHeader>
                       <div className="grid gap-4">
                         {match.variety.imageUrl ? (
-                          <div className="relative h-56 overflow-hidden rounded-md border bg-muted">
-                            <Image src={match.variety.imageUrl} alt={match.variety.name} fill sizes="(max-width: 768px) 100vw, 672px" className="object-cover" />
+                          <div className="space-y-2">
+                            <button
+                              type="button"
+                              className="relative h-56 w-full overflow-hidden rounded-md border bg-muted"
+                              onClick={() => setFullSizeImage({ url: match.variety.imageUrl!, name: match.variety.name })}
+                            >
+                              <Image src={match.variety.imageUrl} alt={match.variety.name} fill sizes="(max-width: 768px) 100vw, 672px" className="object-cover" />
+                            </button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => setFullSizeImage({ url: match.variety.imageUrl!, name: match.variety.name })}
+                            >
+                              <Maximize2 className="h-4 w-4" /> View Full Size
+                            </Button>
                           </div>
                         ) : null}
                         <div className="grid gap-3 text-sm sm:grid-cols-2">
@@ -201,6 +215,26 @@ export function IdentifyForm() {
           ))}
         </CardContent>
       </Card>
+      <Dialog open={Boolean(fullSizeImage)} onOpenChange={(open) => !open && setFullSizeImage(null)}>
+        <DialogContent className="max-h-[94vh] max-w-[min(96vw,1100px)] overflow-y-auto p-3 sm:p-4">
+          <DialogHeader>
+            <DialogTitle>{fullSizeImage?.name || "Variety image"}</DialogTitle>
+            <DialogDescription>Full-size coconut variety image preview</DialogDescription>
+          </DialogHeader>
+          {fullSizeImage ? (
+            <div className="flex max-h-[78vh] items-center justify-center overflow-auto rounded-md border bg-muted">
+              <Image
+                src={fullSizeImage.url}
+                alt={fullSizeImage.name}
+                width={1400}
+                height={1000}
+                className="h-auto max-h-[78vh] w-auto max-w-full object-contain"
+                unoptimized
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -212,141 +246,4 @@ function Detail({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm">{value}</p>
     </div>
   );
-}
-
-function analyzeCoconutImage(imageElement: HTMLImageElement): ImageAnalysis {
-  const processed = preprocessImage(imageElement);
-  if (!processed) return { features: "", steps: [] };
-
-  const colorFeatures = extractColorFeatures(processed);
-  const shapeFeatures = extractShapeFeatures(processed);
-  const textureFeatures = extractTextureFeatures(processed);
-
-  return {
-    features: [...colorFeatures, ...shapeFeatures, ...textureFeatures].join(" "),
-    steps: [
-      "Input coconut image",
-      "Image pre-processing: resize, noise removal, image enhancement",
-      `Feature extraction: ${[...shapeFeatures, ...colorFeatures, ...textureFeatures].join(", ")}`,
-      "Classification: compare extracted image features with coconut records",
-      "Output: ranked coconut variety matches"
-    ]
-  };
-}
-
-function preprocessImage(imageElement: HTMLImageElement) {
-  const canvas = document.createElement("canvas");
-  const size = 224;
-  canvas.width = size;
-  canvas.height = size;
-
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) return null;
-
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
-  context.filter = "contrast(1.08) saturate(1.08)";
-  context.drawImage(imageElement, 0, 0, size, size);
-
-  return context.getImageData(0, 0, size, size);
-}
-
-function extractColorFeatures(imageData: ImageData) {
-  const pixels = imageData.data;
-  const counts = {
-    green: 0,
-    yellow: 0,
-    brown: 0,
-    dark: 0,
-    light: 0
-  };
-
-  for (let index = 0; index < pixels.length; index += 4) {
-    const red = pixels[index];
-    const green = pixels[index + 1];
-    const blue = pixels[index + 2];
-    const alpha = pixels[index + 3];
-    if (alpha < 128) continue;
-
-    const brightness = (red + green + blue) / 3;
-    if (brightness < 80) counts.dark += 1;
-    if (brightness > 180) counts.light += 1;
-    if (green > red * 1.1 && green > blue * 1.15) counts.green += 1;
-    if (red > 120 && green > 100 && blue < 100 && Math.abs(red - green) < 90) counts.yellow += 1;
-    if (red > 75 && green > 45 && green < 135 && blue < 95 && red > blue * 1.2) counts.brown += 1;
-  }
-
-  return Object.entries(counts)
-    .sort(([, first], [, second]) => second - first)
-    .filter(([, count]) => count > 0)
-    .slice(0, 3)
-    .map(([feature]) => feature)
-    .map((feature) => `${feature} color`);
-}
-
-function extractShapeFeatures(imageData: ImageData) {
-  const pixels = imageData.data;
-  let foreground = 0;
-  let minX = imageData.width;
-  let minY = imageData.height;
-  let maxX = 0;
-  let maxY = 0;
-
-  for (let y = 0; y < imageData.height; y += 1) {
-    for (let x = 0; x < imageData.width; x += 1) {
-      const index = (y * imageData.width + x) * 4;
-      const red = pixels[index];
-      const green = pixels[index + 1];
-      const blue = pixels[index + 2];
-      const brightness = (red + green + blue) / 3;
-      const saturation = Math.max(red, green, blue) - Math.min(red, green, blue);
-
-      if (brightness < 230 && saturation > 18) {
-        foreground += 1;
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-      }
-    }
-  }
-
-  if (foreground === 0) return [];
-
-  const width = Math.max(1, maxX - minX + 1);
-  const height = Math.max(1, maxY - minY + 1);
-  const coverage = foreground / (imageData.width * imageData.height);
-  const aspectRatio = width / height;
-  const features = ["coconut shape"];
-
-  if (coverage > 0.18) features.push("large fruit");
-  if (aspectRatio > 0.72 && aspectRatio < 1.35) features.push("round oval");
-  if (aspectRatio >= 1.35) features.push("elongated");
-
-  return features;
-}
-
-function extractTextureFeatures(imageData: ImageData) {
-  const pixels = imageData.data;
-  let edgeScore = 0;
-  let comparisons = 0;
-
-  for (let y = 1; y < imageData.height; y += 4) {
-    for (let x = 1; x < imageData.width; x += 4) {
-      const index = (y * imageData.width + x) * 4;
-      const leftIndex = (y * imageData.width + x - 1) * 4;
-      const topIndex = ((y - 1) * imageData.width + x) * 4;
-      const current = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
-      const left = (pixels[leftIndex] + pixels[leftIndex + 1] + pixels[leftIndex + 2]) / 3;
-      const top = (pixels[topIndex] + pixels[topIndex + 1] + pixels[topIndex + 2]) / 3;
-
-      edgeScore += Math.abs(current - left) + Math.abs(current - top);
-      comparisons += 2;
-    }
-  }
-
-  const averageEdge = comparisons ? edgeScore / comparisons : 0;
-  if (averageEdge > 22) return ["rough texture"];
-  if (averageEdge > 10) return ["moderate texture"];
-  return ["smooth texture"];
 }

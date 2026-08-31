@@ -24,6 +24,7 @@ model User {
   accounts              Account[]
   sessions              Session[]
   uploadedImages        UploadedImage[]
+  uploadedVarietyImages CoconutVariety[]        @relation("VarietyImageUploader")
   identificationHistory IdentificationHistory[]
   activityLogs          ActivityLog[]
 }
@@ -40,8 +41,12 @@ model CoconutVariety {
   averageYield          String
   locationFound         String
   imageUrl              String?
+  imageLabels           String?
+  imageFeatures         String?
+  imageUploadedById     String?                 @db.ObjectId
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
+  imageUploadedBy       User?                   @relation("VarietyImageUploader", fields: [imageUploadedById], references: [id], onDelete: SetNull)
   identificationHistory IdentificationHistory[]
   trainingExamples      TrainingExample[]
 }

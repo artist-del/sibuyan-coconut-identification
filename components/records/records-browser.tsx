@@ -20,6 +20,7 @@ export type RecordVariety = {
   averageYield: string;
   locationFound: string;
   imageUrl: string | null;
+  imageUploadedBy: { name: string } | null;
 };
 
 export function RecordsBrowser({ initialVarieties }: { initialVarieties: RecordVariety[] }) {
@@ -88,6 +89,7 @@ export function RecordsBrowser({ initialVarieties }: { initialVarieties: RecordV
                 <Badge>{item.locationFound}</Badge>
                 <Badge>{item.fruitColor}</Badge>
                 <Badge>{item.averageYield}</Badge>
+                {item.imageUploadedBy?.name ? <Badge>Uploaded by {item.imageUploadedBy.name}</Badge> : null}
               </div>
             </CardContent>
           </Card>

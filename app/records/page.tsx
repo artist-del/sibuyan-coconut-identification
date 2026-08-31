@@ -9,7 +9,12 @@ export const dynamic = "force-dynamic";
 
 export default async function RecordsPage() {
   const varieties = await prisma.coconutVariety.findMany({
-    orderBy: { name: "asc" }
+    orderBy: { name: "asc" },
+    include: {
+      imageUploadedBy: {
+        select: { name: true }
+      }
+    }
   });
 
   return (

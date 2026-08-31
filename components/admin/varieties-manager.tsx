@@ -23,6 +23,9 @@ export type AdminVariety = {
   averageYield: string;
   locationFound: string;
   imageUrl: string | null;
+  imageLabels: string | null;
+  imageFeatures: string | null;
+  imageUploadedBy: { name: string } | null;
 };
 
 const PAGE_SIZE = 8;

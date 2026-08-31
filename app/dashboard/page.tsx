@@ -5,6 +5,8 @@ import { Leaf } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { SiteHeader } from "@/components/landing/site-header";
 import { UserProfileForm } from "@/components/forms/user-profile-form";
+import { VarietyImageManager } from "@/components/users/variety-image-manager";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,29 @@ export default async function DashboardPage() {
     redirect("/admin");
   }
 
+  const varieties = await prisma.coconutVariety.findMany({
+    where: { imageUploadedById: session.user.id },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      characteristics: true,
+      treeHeight: true,
+      localName: true,
+      scientificName: true,
+      locationFound: true,
+      fruitColor: true,
+      averageYield: true,
+      imageUrl: true,
+      imageLabels: true,
+      imageFeatures: true,
+      imageUploadedBy: {
+        select: { name: true }
+      }
+    }
+  });
+
   return (
     <main>
       <SiteHeader />
@@ -30,12 +55,13 @@ export default async function DashboardPage() {
               </p>
               <h1 className="mt-4 text-3xl font-semibold tracking-normal">Manage your profile</h1>
               <p className="mt-2 max-w-2xl text-muted-foreground">
-                Update your account details. Coconut variety records are managed by administrators.
+                Update your account details and manage the coconut variety records you uploaded.
               </p>
             </div>
           </div>
           <div className="space-y-8">
             <UserProfileForm user={{ name: session.user.name ?? "", email: session.user.email ?? "" }} />
+            <VarietyImageManager initialVarieties={varieties} />
           </div>
         </div>
       </div>

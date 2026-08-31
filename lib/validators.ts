@@ -16,7 +16,9 @@ export const varietySchema = z.object({
   fruitColor: z.string().min(1, "Fruit color is required"),
   averageYield: z.string().min(1, "Average yield is required"),
   locationFound: z.string().min(2, "Location is required"),
-  imageUrl: z.string().url().optional().or(z.literal(""))
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  imageLabels: z.string().optional(),
+  imageFeatures: z.string().optional()
 });
 
 export type VarietyInput = z.infer<typeof varietySchema>;

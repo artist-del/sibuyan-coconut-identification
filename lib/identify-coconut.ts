@@ -84,7 +84,9 @@ function scoreVariety(variety: CoconutVariety, observationTokens: string[], trai
       variety.fruitColor,
       variety.locationFound,
       variety.treeHeight,
-      variety.averageYield
+      variety.averageYield,
+      variety.imageLabels,
+      variety.imageFeatures
     ]
       .filter(Boolean)
       .join(" ")
@@ -96,6 +98,21 @@ function scoreVariety(variety: CoconutVariety, observationTokens: string[], trai
     score += Math.min(92, uniqueTokenHits.length * 12);
     matchedFields.push("image features");
     reasons.push(`image features matched: ${uniqueTokenHits.slice(0, 5).join(", ")}`);
+  }
+
+  const savedImageSimilarity = jaccardSimilarity(observationTokens, tokenize([variety.imageLabels, variety.imageFeatures].filter(Boolean).join(" ")));
+  if (savedImageSimilarity >= 0.8) {
+    score += 82;
+    matchedFields.push("saved variety image");
+    reasons.push("very similar to the saved variety image");
+  } else if (savedImageSimilarity >= 0.55) {
+    score += 58;
+    matchedFields.push("saved variety image");
+    reasons.push("similar to the saved variety image");
+  } else if (savedImageSimilarity >= 0.35) {
+    score += 34;
+    matchedFields.push("saved variety image");
+    reasons.push("partly similar to the saved variety image");
   }
 
   if (trainingBoost > 0) {
