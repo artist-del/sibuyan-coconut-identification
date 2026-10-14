@@ -9,17 +9,19 @@ const suspensionHtml = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Website temporarily unavailable</title>
+  <title>Cajidiocan Coconut Identification System — Website temporarily unavailable</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 24px; background: #f0f7f3; color: #183c2c; font-family: system-ui, sans-serif; }
     main { width: 100%; max-width: 560px; padding: clamp(24px, 6vw, 48px); background: white; border: 1px solid #d5e5db; border-radius: 20px; box-shadow: 0 12px 40px #183c2c0d; text-align: center; }
     .label { margin: 0 0 20px; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #47705a; }
+    .project-title { margin: 0 0 24px; font-size: clamp(18px, 4vw, 22px); font-weight: 700; line-height: 1.4; }
     h1 { margin: 0 0 16px; font-size: clamp(26px, 6vw, 36px); line-height: 1.2; overflow-wrap: break-word; }
     .message { margin: 0; color: #486052; font-size: 16px; line-height: 1.7; }
   </style>
 </head>
 <body><main aria-labelledby="notice-title">
+  <p class="project-title">Cajidiocan Coconut Identification System</p>
   <p class="label">Access temporarily suspended</p>
   <h1 id="notice-title">Website temporarily unavailable</h1>
   <p class="message">${message}</p>
