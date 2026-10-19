@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { embeddingSchema, readEmbedding } from "@/lib/image-embedding";
-import { fingerprintStoredImage } from "@/lib/image-fingerprint";
+import { referencePixels } from "@/lib/reference-pixels";
 import { assertVarietyOwner, cleanupGalleryImage } from "@/lib/variety-gallery";
 import { cloudinaryAssetKey, IdentificationError } from "@/lib/identification-admin";
 
@@ -34,7 +34,15 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   try {
-    const parsed = schema.safeParse(await request.json());
+    let metadata: unknown, file: File | null = null;
+    if (request.headers.get("content-type")?.includes("multipart/form-data")) {
+      const form = await request.formData();
+      metadata = JSON.parse(form.get("metadata")?.toString() || "null");
+      const image = form.get("image");
+      if (!(image instanceof File)) throw new IdentificationError(400, "Reference image required. Refresh the page and retry.");
+      file = image;
+    } else metadata = await request.json();
+    const parsed = schema.safeParse(metadata);
     if (!parsed.success) throw new IdentificationError(400, "Invalid reference metadata");
     const body = parsed.data;
     const actor = { id: session.user.id, role: session.user.role };
@@ -43,8 +51,7 @@ export async function POST(request: Request) {
       const example = body.exampleId ? await prisma.trainingExample.findUnique({ where: { id: body.exampleId } }) : null;
       const history = example?.sourceHistoryId ? await prisma.identificationHistory.findUnique({ where: { id: example.sourceHistoryId }, include: { uploadedImage: true } }) : null;
       if (!example || history?.uploadedImage?.url !== body.url) throw new IdentificationError(409, "Reference changed or its image is unavailable");
-      const fingerprint = await fingerprintStoredImage(body.url);
-      if (!fingerprint || fingerprint.contrast < 8) throw new IdentificationError(400, "Unable to read a usable reference image from storage");
+      const fingerprint = await referencePixels(file, body.url, example.imageFingerprint);
       const result = await prisma.trainingExample.updateMany({ where: { id: example.id, sourceHistoryId: example.sourceHistoryId }, data: { imageEmbedding: body.embedding, imageFingerprint: fingerprint } });
       if (!result.count) throw new IdentificationError(409, "Reference changed; reload and retry");
       return NextResponse.json({ ok: true });
@@ -55,9 +62,9 @@ export async function POST(request: Request) {
     const image = body.imageId ? variety.images.find((row) => row.id === body.imageId) : variety.images.find((row) => row.url === variety.imageUrl);
     if (body.imageId && !image) throw new IdentificationError(404, "Reference image not found");
     if ((image?.url ?? variety.imageUrl) !== body.url || (!image && variety.images.length)) throw new IdentificationError(409, "Reference changed; reload and retry");
-    const fingerprint = await fingerprintStoredImage(body.url);
-    if (!fingerprint || fingerprint.contrast < 8) throw new IdentificationError(400, "Unable to read a usable reference image from storage");
+    const fingerprint = await referencePixels(file, body.url, image?.fingerprint);
     const key = cloudinaryAssetKey(body.url);
+    const ownedStorage = Boolean(key && process.env.CLOUDINARY_CLOUD_NAME && key.split("/")[0] === process.env.CLOUDINARY_CLOUD_NAME);
     const data = { fingerprint, embedding: body.embedding };
     const saved = await prisma.$transaction(async (tx) => {
       const current = await tx.coconutVariety.findUnique({ where: { id: variety.id }, include: { images: true } });
@@ -68,7 +75,7 @@ export async function POST(request: Request) {
       // Serialize preparation with five-image saves; a stale legacy request
       // must never create a sixth photo after another editor completes a set.
       await tx.coconutVariety.update({ where: { id: current.id }, data: { updatedAt: new Date() } });
-      return target ? tx.varietyImage.update({ where: { id: target.id }, data }) : tx.varietyImage.create({ data: { ...data, varietyId: current.id, uploaderId: actor.id, url: body.url, publicId: key ? key.slice(key.indexOf("/") + 1) : null, fileName: "Existing reference", features: current.imageFeatures, position: 0 } });
+      return target ? tx.varietyImage.update({ where: { id: target.id }, data }) : tx.varietyImage.create({ data: { ...data, varietyId: current.id, uploaderId: actor.id, url: body.url, publicId: ownedStorage ? key!.slice(key!.indexOf("/") + 1) : null, fileName: "Existing reference", features: current.imageFeatures, position: 0 } });
     });
     return NextResponse.json({ id: saved.id, url: saved.url, position: saved.position, ready: true });
   } catch (error) { return NextResponse.json({ message: error instanceof IdentificationError ? error.message : "Unable to prepare reference. Please retry." }, { status: error instanceof IdentificationError ? error.status : 503 }); }
