@@ -93,6 +93,11 @@ browser; re-upload is unnecessary when the source remains available. Preparation
 can be stopped after the current image and failed items retried. Unavailable sources
 need replacement images. New scans and new gallery uploads already include embeddings.
 Preparation and browser-submitted vectors are advisory, not server-verified inference.
+Preparation submits the already-downloaded, optimized photo to the application's
+server for file/signature/size and usable-pixel validation, after checking ownership
+and the current saved source. It does not require a second server storage download.
+The server does not verify that the submitted pixels equal the remote photo.
+External legacy sources never receive a destroy ID for the configured storage account.
 
 Gallery uploads are staged with unique storage IDs and attached transactionally
 after ownership, count, duplicate-fingerprint, and embedding validation. Replaced
@@ -115,6 +120,7 @@ a review message. All new uploads use unique IDs and disable overwriting.
 ## Validation and deployment
 
 Run `npx tsx scripts/test-gallery-ranking.ts`,
+`npx tsx scripts/test-reference-pixels.ts`,
 `npx tsx scripts/test-identification.ts`, `npx tsx scripts/test-suspension.ts`,
 `npm run lint`, and `npm run build`. Regression tests use synthetic inputs and
 mocked database/storage services, without loading `.env` or modifying live data.
