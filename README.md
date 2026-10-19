@@ -25,6 +25,10 @@ Identification resizes photos before inference and uses the same optimized pixel
 for upload. Initial model loading allows up to ten minutes; errors distinguish
 download/startup, timeout, memory exhaustion, and inference failures without exposing
 raw internal errors. A smaller photo does not reduce the model's own memory needs;
+Cache/serialized-model failures get one retry with browser model caching disabled,
+without deleting site data. Network failures use the safe `MODEL_NETWORK` code;
+failed cache recovery uses `MODEL_CACHE`. Other failures retain the engine/memory
+messages. These codes describe failure classes, not a verified Chrome root cause.
 some low-memory devices may still be unable to run CLIP. Actual phone validation is
 required before claiming device compatibility.
 

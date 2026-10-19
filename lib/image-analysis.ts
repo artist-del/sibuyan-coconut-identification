@@ -2,6 +2,7 @@
 
 import { ANALYSIS_VERSION, SCREENING_MODEL, screeningLabels, createImageScreener } from "@/lib/screening";
 import { normalizeEmbedding } from "@/lib/image-embedding";
+import { loadWithCacheRecovery } from "@/lib/model-loading";
 
 export type ImageAnalysis = {
   labels: string;
@@ -27,7 +28,12 @@ async function loadClip() {
   env.backends.onnx.wasm!.numThreads = 1;
   env.backends.onnx.wasm!.proxy = false;
   const load = pipeline as unknown as (task: "zero-shot-image-classification", model: string, options: { dtype: "q8"; device: "wasm" }) => Promise<import("@huggingface/transformers").ZeroShotImageClassificationPipeline>;
-  const clip = await load("zero-shot-image-classification", SCREENING_MODEL, { dtype: "q8", device: "wasm" });
+  const previousCache = env.useBrowserCache;
+  const clip = await loadWithCacheRecovery(async (useCache) => {
+    env.useBrowserCache = previousCache && useCache;
+    try { return await load("zero-shot-image-classification", SCREENING_MODEL, { dtype: "q8", device: "wasm" }); }
+    finally { env.useBrowserCache = previousCache; }
+  });
   return { clip: clip as unknown as ClipRuntime, fromCanvas: (canvas: HTMLCanvasElement) => RawImage.fromCanvas(canvas) };
   })().catch((error) => { clipPromise = null; throw error; });
   return clipPromise;

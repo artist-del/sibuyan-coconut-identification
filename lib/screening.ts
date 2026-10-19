@@ -26,6 +26,8 @@ export type Screening = z.infer<typeof screeningSchema>;
 
 export function screeningFailureMessage(error: unknown, phase: "load" | "run") {
   const detail = error instanceof Error ? error.message : "";
+  if (/Failed to fetch|NetworkError|network request|Load failed|fetch failed/i.test(detail)) return "Model download failed [MODEL_NETWORK]. Chrome could not fetch a required model or engine file. Try this site in Chrome Incognito with the same connection, then retry. No image identification was completed.";
+  if (/QuotaExceededError|CacheStorage|cache\.match|cache\.put|protobuf/i.test(detail)) return "Model cache recovery failed [MODEL_CACHE]. Chrome could not read or store the model. Free some device storage, reload the page and retry.";
   if (/timeout/i.test(detail)) return "Image screening took too long. Keep this tab open while the model downloads, then retry. The first download can take several minutes on mobile.";
   if (/out of memory|memory access|allocation|array buffer|memory\.grow/i.test(detail)) return "This browser ran out of memory while screening. Close other tabs, reload this page and retry with a smaller photo.";
   if (/wasm|webassembly|simd|SharedArrayBuffer|worker|compileerror/i.test(detail)) return "The image screening engine could not start in this browser. Update Chrome or Safari, reload the page and retry. On a phone, open the site over HTTPS.";

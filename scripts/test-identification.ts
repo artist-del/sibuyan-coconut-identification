@@ -101,7 +101,7 @@ async function main() {
   await assert.rejects(brokenInference(file, () => {}), /retry/);
   assert.match(screeningFailureMessage(new Error("WebAssembly CompileError"), "load"), /engine could not start/);
   assert.match(screeningFailureMessage(new Error("out of memory"), "run"), /ran out of memory/);
-  assert.match(screeningFailureMessage(new Error("Failed to fetch"), "load"), /download or start/);
+  assert.match(screeningFailureMessage(new Error("Failed to fetch"), "load"), /MODEL_NETWORK/);
   assert.match(screeningFailureMessage(new Error("Screening timeout"), "load"), /several minutes/);
   assert.ok(!screeningFailureMessage(new Error("private-internal-details"), "run").includes("private-internal-details"));
   assert.equal(screeningOutcome(screening()), "coconut");
