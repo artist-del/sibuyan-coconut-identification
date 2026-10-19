@@ -24,7 +24,14 @@ export const screeningSchema = z.object({
 });
 export type Screening = z.infer<typeof screeningSchema>;
 
-export function createImageScreener(load: () => Promise<(file: File) => Promise<unknown>>, timeoutMs = 180_000) {
+export function screeningFailureMessage(error: unknown, phase: "load" | "run") {
+  const detail = error instanceof Error ? error.message : "";
+  if (/timeout/i.test(detail)) return "Image screening took too long. Keep this tab open while the model downloads, then retry. The first download can take several minutes on mobile.";
+  if (/out of memory|memory access|allocation|array buffer|memory\.grow/i.test(detail)) return "This browser ran out of memory while screening. Close other tabs, reload this page and retry with a smaller photo.";
+  if (/wasm|webassembly|simd|SharedArrayBuffer|worker|compileerror/i.test(detail)) return "The image screening engine could not start in this browser. Update Chrome or Safari, reload the page and retry. On a phone, open the site over HTTPS.";
+  return phase === "load" ? "Unable to download or start the screening model. Check your connection, keep the page open and retry. A content blocker may also block model downloads." : "The screening model could not process this photo. Reload the page and retry with a smaller JPEG or PNG. If it continues, try an updated Chrome or Safari browser.";
+}
+export function createImageScreener(load: () => Promise<(file: File) => Promise<unknown>>, timeoutMs = 600_000) {
   let cached: ReturnType<typeof load> | null = null;
   async function deadline<T>(operation: Promise<T>): Promise<T> {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -33,15 +40,17 @@ export function createImageScreener(load: () => Promise<(file: File) => Promise<
     } finally { if (timer) clearTimeout(timer); }
   }
   return async (file: File, progress: (message: string) => void): Promise<Screening> => {
+    let phase: "load" | "run" = "load";
     progress("Loading screening model. The first download may take a few minutes...");
     try {
       cached ??= load();
       const classify = await deadline(cached);
+      phase = "run";
       progress("Checking whether this image shows coconut fruit...");
       return screeningSchema.parse(await deadline(classify(file)));
-    } catch {
+    } catch (error) {
       cached = null;
-      throw new Error("Unable to load or run image screening. Check your connection and retry.");
+      throw new Error(screeningFailureMessage(error, phase));
     }
   };
 }

@@ -59,7 +59,15 @@ async function main() {
   const fp = await fingerprintImage(await sharp(raw, { raw: { width: 64, height: 64, channels: 3 } }).png().toBuffer());
   const corrected = resolveIdentification("uncertain", { embedding: query }, fp, varieties, [], [{ fingerprint: fp, coconutVarietyId: "0", isNotCoconut: false }]);
   assert.equal(corrected.matches.length, 5, "Admin correction must not short-circuit all-variety ranking");
-  assert.equal(resolveIdentification("not_coconut", { embedding: query }, fp, varieties, [], []).matches.length, 0);
+  const uncertainComparison = resolveIdentification("not_coconut", { embedding: query }, fp, varieties, [], []);
+  assert.equal(uncertainComparison.matches.length, 5);
+  assert.equal(uncertainComparison.status, "uncertain", "Screening alone must not claim non-coconut while hiding comparisons");
+  const multi = rankVarietyImages(query, [{ ...varieties[0], images: [
+    { id: "a", url: "a", embedding: query },
+    { id: "b", url: "b", embedding: orthogonal },
+    { id: "c", url: "c", embedding: orthogonal }
+  ] }], []);
+  assert.equal(multi[0].similarityPercent, 33.3, "One identical reference must not force the overall score to 100%");
   const incomplete = rankVarietyImages(query, [{ ...varieties[0], images: [] }], []);
   assert.equal(incomplete[0].similarityPercent, null);
   assert.equal(JSON.stringify(publicVariety({ images: [{ id: "x", url: "u", position: 0, embedding: query }] })).includes("values"), false);

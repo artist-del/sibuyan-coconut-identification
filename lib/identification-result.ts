@@ -13,8 +13,8 @@ export function resolveIdentification(outcome: "coconut" | "not_coconut" | "unce
   if ((negatives && positives.size) || positives.size > 1) return { ...base, evidence: "conflicting-reviewed-references", status: "uncertain", message: "Similar reviewed images have conflicting corrections. An admin needs to review these references.", matches: [] as IdentificationMatch[] };
   if (negatives) return { ...base, evidence: "reviewed-image-reference", status: "not_coconut", message: "This image closely matches a reference reviewed by an admin as not coconut.", matches: [] as IdentificationMatch[] };
   if (input.embedding) {
-    if (outcome !== "coconut" && positives.size !== 1) return { ...base, status: outcome === "not_coconut" ? "not_coconut" : "uncertain", message: "Screening did not establish coconut fruit and there is no close known reference. An admin can review this scan.", matches: [] };
     const matches = rankVarietyImages(input.embedding, varieties, examples, positives.size === 1 ? [...positives][0] : null);
+    if (outcome !== "coconut" && positives.size !== 1) return { ...base, evidence: "image-embedding-comparison", status: "uncertain", message: "Coconut screening is inconclusive. These are visual comparisons against all prepared varieties, not confirmed coconut identifications. Similar-looking objects can also score highly; an admin should review this scan.", matches };
     return { ...base, evidence: "image-embedding-comparison", status: matches.some((match) => match.similarity !== null) || positives.size === 1 ? "possible_matches" : "uncertain", message: "Top available visual comparisons. Percentages measure image similarity, not the probability that a variety is correct. Lower-ranked alternatives may be unrelated. Unprepared varieties have no score.", matches };
   }
   if (positives.size === 1) {

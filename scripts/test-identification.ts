@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import type { CoconutVariety, PrismaClient } from "@prisma/client";
 import { identifyCoconutFromRecords, findSimilarNotCoconutExample } from "../lib/identify-coconut";
-import { ANALYSIS_VERSION, SCREENING_MODEL, screeningLabels, screeningSchema, screeningOutcome, imageValidationError, imageHasValidSignature, analysisSummary, createImageScreener } from "../lib/screening";
+import { ANALYSIS_VERSION, SCREENING_MODEL, screeningLabels, screeningSchema, screeningOutcome, imageValidationError, imageHasValidSignature, analysisSummary, createImageScreener, screeningFailureMessage } from "../lib/screening";
 import { createScanRun } from "../lib/scan-run";
 import { cloudinaryAssetKey, correctIdentification, deleteIdentification, IdentificationError, requireAdmin } from "../lib/identification-admin";
 import { destroyCloudinaryImage } from "../lib/cloudinary";
@@ -99,6 +99,11 @@ async function main() {
   await assert.rejects(stalled(file, () => {}), /retry/);
   const brokenInference = createImageScreener(async () => async () => { throw new Error("Inference unavailable"); });
   await assert.rejects(brokenInference(file, () => {}), /retry/);
+  assert.match(screeningFailureMessage(new Error("WebAssembly CompileError"), "load"), /engine could not start/);
+  assert.match(screeningFailureMessage(new Error("out of memory"), "run"), /ran out of memory/);
+  assert.match(screeningFailureMessage(new Error("Failed to fetch"), "load"), /download or start/);
+  assert.match(screeningFailureMessage(new Error("Screening timeout"), "load"), /several minutes/);
+  assert.ok(!screeningFailureMessage(new Error("private-internal-details"), "run").includes("private-internal-details"));
   assert.equal(screeningOutcome(screening()), "coconut");
   assert.equal(screeningOutcome(screening(3)), "not_coconut");
   assert.equal(screeningOutcome(screening(0, 0.6)), "uncertain");
