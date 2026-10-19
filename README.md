@@ -19,6 +19,14 @@ Transformers.js 3.8.1 (WASM). The model runs in the browser; no paid inference A
 is used. Initial model files are downloaded from Hugging Face and cached by the
 browser. Images are uploaded to the configured Cloudinary account for admin
 review, including rejected and uncertain scans.
+The browser runtime uses one WASM thread with worker proxying disabled, including
+on Chrome mobile and local network previews without cross-origin isolation.
+Identification resizes photos before inference and uses the same optimized pixels
+for upload. Initial model loading allows up to ten minutes; errors distinguish
+download/startup, timeout, memory exhaustion, and inference failures without exposing
+raw internal errors. A smaller photo does not reduce the model's own memory needs;
+some low-memory devices may still be unable to run CLIP. Actual phone validation is
+required before claiming device compatibility.
 
 The six fixed screening categories compare coconut fruit with palm trees/leaves,
 other fruit/vegetables, people/animals, manufactured objects, and scenery/documents.
@@ -26,16 +34,21 @@ A category must score at least 0.80 and lead the runner-up by at least 0.20;
 otherwise the result is uncertain. These are provisional, uncalibrated thresholds.
 Model failure offers retry rather than a fallback classification.
 
-New images without a close reviewed reference must pass coconut screening before
-entering variety matching. New scans compare normalized 512-dimensional CLIP image
+New scans compare normalized 512-dimensional CLIP image
 embeddings against all prepared variety photos and positive reviewed examples.
-Each variety uses its closest reference's cosine similarity; the five highest
+Each variety averages the cosine similarities of up to three closest references,
+after comparing all prepared photos; the five highest
 comparisons are displayed, including weak alternatives. Scores are independent,
 do not sum to 100%, and are not calibrated identification confidence. Unprepared
 varieties have no invented percentage. Generic keywords and descriptive record
 text do not contribute. Negative reviewed example
 overlap routes a scan to review instead of asserting that visual similarity proves
 the image is not coconut. Corrections do not retrain CLIP.
+For embedding-based scans, uncertain or negative model screening still shows the
+comparison list with an **Unable to determine** warning. Scores do not override
+that warning. A close explicit admin-reviewed negative can still return **Not coconut**;
+conflicting known references require review. Screening thresholds remain provisional;
+they are not lowered to manufacture positive identifications.
 
 Admin corrections now retain a server-derived pixel fingerprint. Before applying
 the CLIP screening gate, the server checks for the same or a nearly identical

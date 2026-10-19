@@ -22,6 +22,10 @@ async function loadClip() {
   clipPromise = (async () => {
   const { pipeline, env, RawImage } = await import("@huggingface/transformers");
   env.allowLocalModels = false;
+  // A single WASM thread works without SharedArrayBuffer/cross-origin isolation
+  // and avoids worker startup failures on phones and local network previews.
+  env.backends.onnx.wasm!.numThreads = 1;
+  env.backends.onnx.wasm!.proxy = false;
   const load = pipeline as unknown as (task: "zero-shot-image-classification", model: string, options: { dtype: "q8"; device: "wasm" }) => Promise<import("@huggingface/transformers").ZeroShotImageClassificationPipeline>;
   const clip = await load("zero-shot-image-classification", SCREENING_MODEL, { dtype: "q8", device: "wasm" });
   return { clip: clip as unknown as ClipRuntime, fromCanvas: (canvas: HTMLCanvasElement) => RawImage.fromCanvas(canvas) };

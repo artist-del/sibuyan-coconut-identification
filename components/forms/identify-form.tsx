@@ -74,12 +74,13 @@ export function IdentifyForm() {
     setPending(true);
     void (async () => {
       try {
-        const screening = await screenImageFile(file, (text) => { if (active()) setProgress(text); });
+        setProgress("Preparing image...");
+        const optimizedFile = await optimizeImageFile(file);
+        if (!active()) return;
+        const screening = await screenImageFile(optimizedFile, (text) => { if (active()) setProgress(text); });
         if (!active()) return;
         setProgress("Extracting visual traits and saving scan for review...");
-        const imageAnalysis = await analyzeImageFile(file);
-        if (!active()) return;
-        const optimizedFile = await optimizeImageFile(file);
+        const imageAnalysis = await analyzeImageFile(optimizedFile);
         if (!active()) return;
         const formData = new FormData();
         formData.set("image", optimizedFile);
@@ -143,7 +144,7 @@ export function IdentifyForm() {
       <Card>
         <CardHeader>
           <CardTitle>{result?.status === "not_coconut" ? "Not coconut" : result?.status === "uncertain" ? "Unable to determine" : result?.status === "error" ? "Unable to process image" : "Top 5 visual comparisons"}</CardTitle>
-          <CardDescription>Each variety is compared using its closest prepared reference photo. Similarity percentages are not identification confidence, and do not add up to 100%.</CardDescription>
+          <CardDescription>All prepared reference photos are compared. Each variety's score averages up to three closest references. Percentages are visual similarity, not identification confidence, and do not add up to 100%.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {result ? <p role="status" className="text-sm text-muted-foreground">{result.message}</p> : <p className="text-sm text-muted-foreground">Upload a coconut image to see possible varieties.</p>}
