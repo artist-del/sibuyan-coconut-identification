@@ -6,12 +6,14 @@ import { Edit, PlusCircle, Search, X } from "lucide-react";
 import { DeleteVarietyButton } from "@/components/admin/delete-variety-button";
 import { ExportButtons } from "@/components/admin/export-buttons";
 import { VarietyForm } from "@/components/forms/variety-form";
+import { ReferencePreparation } from "@/components/admin/reference-preparation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 export type AdminVariety = {
+  images?: { id: string; url: string; position: number }[];
   id: string;
   name: string;
   scientificName: string | null;
@@ -83,6 +85,7 @@ export function VarietiesManager({ initialVarieties }: { initialVarieties: Admin
         </div>
       </div>
 
+      <ReferencePreparation />
       <Card>
         <CardHeader>
           <CardTitle>Records</CardTitle>

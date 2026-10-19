@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
+import { ReferenceGallery } from "@/components/ui/reference-gallery";
 import { Edit, ImagePlus, PlusCircle, Search, X } from "lucide-react";
 
 import { VarietyForm } from "@/components/forms/variety-form";
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 
 type UserVariety = {
+  images?: { id: string; url: string; position: number }[];
   id: string;
   name: string;
   scientificName: string | null;
@@ -81,13 +82,7 @@ export function VarietyImageManager({ initialVarieties }: { initialVarieties: Us
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((variety) => (
                 <div key={variety.id} className="overflow-hidden rounded-lg border bg-card">
-                  <div className="relative h-44 bg-muted">
-                    {variety.imageUrl ? (
-                      <Image src={variety.imageUrl} alt={variety.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
-                    ) : (
-                      <div className="grid h-full place-items-center text-sm text-muted-foreground">No image</div>
-                    )}
-                  </div>
+                  <ReferenceGallery images={variety.images} cover={variety.imageUrl} name={variety.name} height="h-44" />
                   <div className="space-y-3 p-4">
                     <div>
                       <h3 className="font-semibold">{variety.name}</h3>

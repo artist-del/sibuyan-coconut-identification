@@ -11,6 +11,7 @@ export default async function RecordsPage() {
   const varieties = await prisma.coconutVariety.findMany({
     orderBy: { name: "asc" },
     include: {
+      images: { orderBy: { position: "asc" }, select: { id: true, url: true } },
       imageUploadedBy: {
         select: { name: true }
       }
