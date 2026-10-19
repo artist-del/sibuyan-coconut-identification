@@ -20,6 +20,7 @@ export default async function AdminVarietiesPage() {
       imageUrl: true,
       imageLabels: true,
       imageFeatures: true,
+      images: { orderBy: { position: "asc" }, select: { id: true, url: true, position: true } },
       imageUploadedBy: { select: { name: true } }
     }
   });

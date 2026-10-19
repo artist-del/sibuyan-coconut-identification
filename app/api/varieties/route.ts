@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import { authOptions, isAdmin } from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { varietySchema } from "@/lib/validators";
+import { galleryInclude, galleryVarietySchema, publicVariety, saveGalleryVariety } from "@/lib/variety-gallery";
+import { IdentificationError } from "@/lib/identification-admin";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
@@ -33,46 +34,26 @@ export async function GET(request: Request) {
       ]
     },
     orderBy: { name: "asc" },
-    include: {
-      imageUploadedBy: {
-        select: { name: true }
-      }
-    }
+    include: galleryInclude
   });
 
-  return NextResponse.json(varieties);
+  return NextResponse.json(varieties.map(publicVariety));
 }
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const parsed = varietySchema.safeParse(await request.json());
+  const parsed = galleryVarietySchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message || "Invalid data" }, { status: 400 });
-  if (!isAdmin(session.user.role) && (!parsed.data.imageUrl || !parsed.data.imageFeatures)) {
-    return NextResponse.json({ message: "Upload an image before saving this variety." }, { status: 400 });
-  }
 
   try {
-    const variety = await prisma.coconutVariety.create({
-      data: {
-        ...parsed.data,
-        imageUploadedById: parsed.data.imageFeatures || !isAdmin(session.user.role) ? session.user.id : undefined
-      },
-      include: {
-        imageUploadedBy: {
-          select: { name: true }
-        }
-      }
-    });
-    await prisma.activityLog.create({
-      data: { action: "Created", entity: "CoconutVariety", entityId: variety.id, userId: session.user.id }
-    });
-    return NextResponse.json(variety, { status: 201 });
+    const result = await saveGalleryVariety(prisma, { id: session.user.id, role: session.user.role }, parsed.data);
+    return NextResponse.json({ ...result.variety, cleanupPending: result.cleanupPending }, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ message: "A variety with this name already exists. Please choose a different name." }, { status: 409 });
     }
-    throw error;
+    return NextResponse.json({ message: error instanceof IdentificationError ? error.message : "Unable to save variety. Please retry." }, { status: error instanceof IdentificationError ? error.status : 503 });
   }
 }

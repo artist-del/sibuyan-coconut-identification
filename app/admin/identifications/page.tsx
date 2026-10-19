@@ -4,6 +4,7 @@ import { IdentificationReviewForm } from "@/components/admin/identification-revi
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { analysisSummary } from "@/lib/screening";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function AdminIdentificationsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold tracking-normal">Identifications</h1>
-        <p className="text-muted-foreground">Review uploaded coconut images, confidence results, and correct matches.</p>
+        <p className="text-muted-foreground">Review screening outcomes and possible varieties. Corrections are similarity references, not model retraining.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -95,11 +96,13 @@ export default async function AdminIdentificationsPage() {
                       Uploaded by {history.user?.name ?? "Guest"} {history.user?.email ? `(${history.user.email})` : ""}
                     </p>
                   </div>
-                  <Badge className="w-fit bg-primary text-primary-foreground">{Math.round(history.confidence)}% confidence</Badge>
+                  <Badge className="w-fit bg-primary text-primary-foreground">{analysisSummary(history.analysis).status}</Badge>
                 </div>
 
                 <p className="text-sm text-muted-foreground">{history.notes || "No analysis notes available."}</p>
                 <div className="flex flex-wrap gap-2">
+                  <Badge>{analysisSummary(history.analysis).review}</Badge>
+                  {analysisSummary(history.analysis).similarity !== null ? <Badge>{analysisSummary(history.analysis).similarity!.toFixed(1)}% visual similarity</Badge> : null}
                   <Badge>{history.imageFeatures ? "Learning ready" : "No stored features"}</Badge>
                   {history.coconutVariety?.name ? <Badge>{history.coconutVariety.name}</Badge> : <Badge>Not coconut / unresolved</Badge>}
                 </div>

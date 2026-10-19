@@ -49,6 +49,26 @@ model CoconutVariety {
   imageUploadedBy       User?                   @relation("VarietyImageUploader", fields: [imageUploadedById], references: [id], onDelete: SetNull)
   identificationHistory IdentificationHistory[]
   trainingExamples      TrainingExample[]
+  images                VarietyImage[]
+}
+
+model VarietyImage {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  varietyId   String?         @db.ObjectId
+  uploaderId  String          @db.ObjectId
+  url         String
+  publicId    String?
+  fileName    String
+  features    String?
+  fingerprint Json?
+  embedding   Json?
+  position    Int             @default(0)
+  deleting    Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  variety     CoconutVariety? @relation(fields: [varietyId], references: [id], onDelete: SetNull)
+
+  @@index([varietyId])
+  @@index([uploaderId])
 }
 
 model UploadedImage {
@@ -69,6 +89,7 @@ model IdentificationHistory {
   notes            String?
   imageLabels      String?
   imageFeatures    String?
+  analysis         Json?
   userId           String?         @db.ObjectId
   uploadedImageId  String?         @unique @db.ObjectId
   coconutVarietyId String?         @db.ObjectId
@@ -82,6 +103,8 @@ model TrainingExample {
   id               String         @id @default(auto()) @map("_id") @db.ObjectId
   imageLabels      String?
   imageFeatures    String
+  imageFingerprint Json?
+  imageEmbedding   Json?
   isNotCoconut     Boolean        @default(false)
   sourceHistoryId  String?        @db.ObjectId
   coconutVarietyId String?        @db.ObjectId

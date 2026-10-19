@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Image from "next/image";
+import { ReferenceGallery } from "@/components/ui/reference-gallery";
 import { Search, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 export type RecordVariety = {
+  images?: { id: string; url: string }[];
   id: string;
   name: string;
   scientificName: string | null;
@@ -72,13 +73,7 @@ export function RecordsBrowser({ initialVarieties }: { initialVarieties: RecordV
       <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {varieties.map((item) => (
           <Card key={item.id} className="overflow-hidden">
-            <div className="relative h-52 bg-muted">
-              {item.imageUrl ? (
-                <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-              ) : (
-                <div className="grid h-full place-items-center text-sm text-muted-foreground">No image</div>
-              )}
-            </div>
+            <ReferenceGallery images={item.images} cover={item.imageUrl} name={item.name} />
             <CardHeader>
               <CardTitle>{item.name}</CardTitle>
               <p className="text-sm text-muted-foreground">{item.localName || item.scientificName || "Cajidiocan coconut variety"}</p>

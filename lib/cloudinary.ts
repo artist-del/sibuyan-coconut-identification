@@ -34,7 +34,8 @@ export type CloudinaryUploadResponse = {
 export async function uploadImageToCloudinary(file: File, folder = "coconut_identification") {
     const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
     const timestamp = Math.floor(Date.now() / 1000);
-    const paramsToSign = `folder=${folder}&timestamp=${timestamp}&unique_filename=false&use_filename=true`;
+    const publicId = crypto.randomUUID();
+    const paramsToSign = `folder=${folder}&overwrite=false&public_id=${publicId}&timestamp=${timestamp}`;
     const signature = crypto
         .createHash("sha1")
         .update(`${paramsToSign}${apiSecret}`)
@@ -46,8 +47,8 @@ export async function uploadImageToCloudinary(file: File, folder = "coconut_iden
     body.append("timestamp", timestamp.toString());
     body.append("signature", signature);
     body.append("folder", folder);
-    body.append("use_filename", "true");
-    body.append("unique_filename", "false");
+    body.append("public_id", publicId);
+    body.append("overwrite", "false");
 
     const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: "POST",
@@ -55,9 +56,21 @@ export async function uploadImageToCloudinary(file: File, folder = "coconut_iden
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Cloudinary upload failed: ${response.status} ${errorText}`);
+        throw new Error("Image storage is unavailable. Please retry.");
     }
 
     return (await response.json()) as CloudinaryUploadResponse;
+}
+
+export async function destroyCloudinaryImage(publicId: string) {
+    const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = crypto.createHash("sha1").update(`invalidate=true&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`).digest("hex");
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+        method: "POST",
+        body: new URLSearchParams({ public_id: publicId, invalidate: "true", timestamp, api_key: apiKey, signature })
+    });
+    if (!response.ok) throw new Error("Unable to remove the stored image. Please retry.");
+    const data = await response.json();
+    if (data.result !== "ok" && data.result !== "not found") throw new Error("Unable to remove the stored image. Please retry.");
 }

@@ -20,7 +20,7 @@ export default async function IdentifyPage() {
         <div className="mb-8 max-w-3xl">
           <h1 className="text-4xl font-semibold tracking-normal">Identify a Coconut Variety</h1>
           <p className="mt-3 text-muted-foreground">
-            Upload a field image and add observations to compare it against actual Cajidiocan coconut variety records.
+            Upload a clear coconut fruit photo for screening and comparison with saved Cajidiocan variety records. Results are tentative and may need expert review.
           </p>
         </div>
         <IdentifyForm />
