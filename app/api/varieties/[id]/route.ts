@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { galleryInclude, galleryVarietySchema, publicVariety, saveGalleryVariety, cleanupGalleryImage } from "@/lib/variety-gallery";
-import { IdentificationError } from "@/lib/identification-admin";
+import { galleryInclude, galleryVarietySchema, publicVariety, saveGalleryVariety, cleanupGalleryImage, varietySaveFailure } from "@/lib/variety-gallery";
 type Context = { params: Promise<{ id: string }> };
 const validId = (id: string) => /^[a-f\d]{24}$/i.test(id);
 export async function GET(_request: Request, { params }: Context) {
@@ -23,7 +22,10 @@ export async function PATCH(request: Request, { params }: Context) {
   try {
     const result = await saveGalleryVariety(prisma, { id: session.user.id, role: session.user.role }, parsed.data, id);
     return NextResponse.json({ ...result.variety, cleanupPending: result.cleanupPending });
-  } catch (error) { return NextResponse.json({ message: error instanceof IdentificationError ? error.message : "Unable to save variety. Please retry." }, { status: error instanceof IdentificationError ? error.status : 503 }); }
+  } catch (error) {
+    const failure = varietySaveFailure(error);
+    return NextResponse.json({ message: failure.message }, { status: failure.status });
+  }
 }
 export async function DELETE(_request: Request, { params }: Context) {
   const session = await getServerSession(authOptions);

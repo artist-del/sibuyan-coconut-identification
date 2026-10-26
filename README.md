@@ -29,6 +29,9 @@ Cache/serialized-model failures get one retry with browser model caching disable
 without deleting site data. Network failures use the safe `MODEL_NETWORK` code;
 failed cache recovery uses `MODEL_CACHE`. Other failures retain the engine/memory
 messages. These codes describe failure classes, not a verified Chrome root cause.
+Nested runtime errors are classified without displaying raw details. Startup
+diagnostics also distinguish `MODEL_ENGINE`, `MODEL_MEMORY`, `MODEL_APP_FILES`,
+and `MODEL_START_UNKNOWN`; unknown inference failures use `MODEL_RUN_UNKNOWN`.
 some low-memory devices may still be unable to run CLIP. Actual phone validation is
 required before claiming device compatibility.
 
@@ -104,8 +107,11 @@ The server does not verify that the submitted pixels equal the remote photo.
 External legacy sources never receive a destroy ID for the configured storage account.
 
 Gallery uploads are staged with unique storage IDs and attached transactionally
-after ownership, count, duplicate-fingerprint, and embedding validation. Replaced
-unshared images are cleaned after saving; shared assets are preserved. If cleanup
+after ownership, count, duplicate-fingerprint, and embedding validation.
+Variety saves use a bounded 15-second interactive transaction budget, including
+the audit write, to avoid Prisma's default 5-second expiry during five-photo updates.
+Save failures expose safe diagnostic codes without database messages or credentials.
+Replaced unshared images are cleaned after saving; shared assets are preserved. If cleanup
 fails, the record remains saved and the UI reports pending cleanup. The admin
 **Clean unused uploads** action retries detached uploads older than 24 hours and
 pending removals. It never removes attached gallery images.

@@ -6,12 +6,15 @@ import { resolveIdentification } from "../lib/identification-result";
 import { saveGalleryVariety, galleryVarietySchema, publicVariety, cleanupGalleryImage } from "../lib/variety-gallery";
 import { fingerprintImage } from "../lib/image-fingerprint";
 import sharp from "sharp";
+import { Prisma } from "@prisma/client";
+import { varietySaveFailure } from "../lib/variety-gallery";
 
 const owner = { id: "123456789012345678901234", role: "USER" };
 const metadata = { name: "Test variety", description: "Description with more than twenty characters", characteristics: "Distinctive fruit characteristics", treeHeight: "Short", fruitColor: "Orange", averageYield: "100", locationFound: "Cagban" };
 function vector(a: number, b = 0) { return normalizeEmbedding([a, b, ...Array(510).fill(0)]); }
 const query = vector(1), orthogonal = vector(0, 1);
-function fixture() {
+function fixture(transactionDurationMs = 0) {
+  let transactionTimeout = 5000;
   const rows = Array.from({ length: 6 }, (_, i) => ({ id: String(i + 1).padStart(24, "0"), uploaderId: owner.id, varietyId: null as string | null, deleting: false, url: `https://res.cloudinary.com/test/image/upload/v1/photo${i}.jpg`, publicId: `photo${i}`, position: i, features: "orange round smooth", embedding: query, fingerprint: { version: 1, digest: String(i).repeat(64), pixels: "ab".repeat(768), edges: "01".repeat(32), contrast: 20 } }));
   const state = { rows, record: null as (Record<string, unknown> & { id: string; imageUploadedById: string | null }) | null, logs: 0 };
   const includeImages = () => ({ ...state.record!, images: state.rows.filter((row) => row.varietyId === state.record?.id) });
@@ -35,12 +38,32 @@ function fixture() {
       deleteMany: async ({ where }: { where: { id: string } }) => { const index = rows.findIndex((row) => row.id === where.id); if (index >= 0) rows.splice(index, 1); }
     },
     uploadedImage: { findMany: async () => [] },
-    activityLog: { create: async () => { state.logs++; } },
-    $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(db)
+    activityLog: { create: async () => {
+      // Reproduce the reported expiry at the final audit write, without sleeps
+      // or a live database. Prisma's default transaction budget is 5000 ms.
+      if (transactionDurationMs > transactionTimeout) throw new Prisma.PrismaClientKnownRequestError("Transaction already closed: expired", { code: "P2028", clientVersion: "5.22.0" });
+      state.logs++;
+    } },
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>, options?: { timeout?: number }) => { transactionTimeout = options?.timeout ?? 5000; return fn(db); }
   };
   return { db: db as unknown as PrismaClient, state };
 }
 async function main() {
+  assert.equal(typeof varietySaveFailure, "function", "Save failures must expose a safe diagnostic code");
+  const transactionError = new Prisma.PrismaClientKnownRequestError("private database details", { code: "P2028", clientVersion: "5.22.0", meta: { secret: "do-not-expose" } });
+  const failure = varietySaveFailure(transactionError);
+  assert.equal(failure.status, 503);
+  assert.match(failure.message, /P2028/);
+  assert.ok(!JSON.stringify(failure).includes("private database details"));
+  assert.ok(!JSON.stringify(failure).includes("do-not-expose"));
+  assert.equal(varietySaveFailure(new Prisma.PrismaClientKnownRequestError("duplicate", { code: "P2002", clientVersion: "5.22.0" })).status, 409);
+  assert.match(varietySaveFailure(new Error("secret internal failure")).message, /SAVE_UNEXPECTED/);
+  {
+    const { db, state } = fixture(5201);
+    const result = await saveGalleryVariety(db, owner, { ...metadata, imageIds: state.rows.slice(0, 5).map((row) => row.id) });
+    assert.equal(result.variety.images.length, 5);
+    assert.equal(state.logs, 1, "A five-photo save taking 5201 ms must still write its audit log before committing");
+  }
   assert.equal(readEmbedding({ ...query, values: [1] }), null);
   assert.equal(readEmbedding({ ...query, values: Array(512).fill(0) }), null);
   assert.ok(cosineSimilarity(query, query) > 0.999);

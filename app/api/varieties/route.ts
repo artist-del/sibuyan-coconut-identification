@@ -3,9 +3,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { galleryInclude, galleryVarietySchema, publicVariety, saveGalleryVariety } from "@/lib/variety-gallery";
-import { IdentificationError } from "@/lib/identification-admin";
-import { Prisma } from "@prisma/client";
+import { galleryInclude, galleryVarietySchema, publicVariety, saveGalleryVariety, varietySaveFailure } from "@/lib/variety-gallery";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -51,9 +49,7 @@ export async function POST(request: Request) {
     const result = await saveGalleryVariety(prisma, { id: session.user.id, role: session.user.role }, parsed.data);
     return NextResponse.json({ ...result.variety, cleanupPending: result.cleanupPending }, { status: 201 });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return NextResponse.json({ message: "A variety with this name already exists. Please choose a different name." }, { status: 409 });
-    }
-    return NextResponse.json({ message: error instanceof IdentificationError ? error.message : "Unable to save variety. Please retry." }, { status: error instanceof IdentificationError ? error.status : 503 });
+    const failure = varietySaveFailure(error);
+    return NextResponse.json({ message: failure.message }, { status: failure.status });
   }
 }

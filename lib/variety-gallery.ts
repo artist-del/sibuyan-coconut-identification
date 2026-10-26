@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { varietySchema } from "@/lib/validators";
 import { readEmbedding, validateGallery } from "@/lib/image-embedding";
@@ -9,6 +9,21 @@ import { IdentificationError, cloudinaryAssetKey } from "@/lib/identification-ad
 export const galleryVarietySchema = varietySchema.omit({ imageUrl: true, imageFeatures: true, imageLabels: true }).extend({ imageIds: z.array(z.string().regex(/^[a-f\d]{24}$/i)).length(5).optional() }).strict();
 export type GalleryVarietyInput = z.infer<typeof galleryVarietySchema>;
 export type GalleryActor = { id: string; role: string };
+export function varietySaveFailure(error: unknown) {
+  if (error instanceof IdentificationError) return { status: error.status, message: error.message };
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") return { status: 409, message: "A variety with this name already exists. Please choose a different name. [P2002]" };
+    if (error.code === "P2028") return { status: 503, message: "The database transaction did not complete. Keep this form open and retry. [P2028]" };
+    if (error.code === "P2034") return { status: 409, message: "Another save conflicted with this update. Keep this form open and retry. [P2034]" };
+    if (/^P\d{4}$/.test(error.code)) return { status: 503, message: `Unable to save variety. Please retry. [${error.code}]` };
+  }
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    const code = error.errorCode && /^P\d{4}$/.test(error.errorCode) ? error.errorCode : "SAVE_CONNECTION";
+    return { status: 503, message: `Database connection could not start. Please retry. [${code}]` };
+  }
+  if (error instanceof Prisma.PrismaClientValidationError) return { status: 503, message: "Save data is incompatible with the deployed database client. Contact the developer. [SAVE_SCHEMA]" };
+  return { status: 503, message: "Unable to save variety. Please retry. [SAVE_UNEXPECTED]" };
+}
 export const galleryInclude = { imageUploadedBy: { select: { name: true } }, images: { orderBy: { position: "asc" as const }, select: { id: true, url: true, position: true, embedding: true } } };
 export function publicVariety<T extends { images: { id: string; url: string; position: number; embedding: unknown }[] }>(variety: T) {
   return { ...variety, images: variety.images.map(({ id, url, position, embedding }) => ({ id, url, position, ready: Boolean(readEmbedding(embedding)) })) };
@@ -46,7 +61,9 @@ export async function saveGalleryVariety(db: PrismaClient, actor: GalleryActor, 
     }
     await tx.activityLog.create({ data: { action: existing ? "Updated" : "Created", entity: "CoconutVariety", entityId: saved.id, userId: actor.id, metadata: { referenceImagesChanged: Boolean(imageIds) } } });
     return tx.coconutVariety.findUniqueOrThrow({ where: { id: saved.id }, include: galleryInclude });
-  });
+  // Five reference updates plus the audit write can exceed Prisma's 5 s default
+  // on the deployed database. Keep them atomic within a bounded 15 s budget.
+  }, { timeout: 15_000 });
   let cleanupPending = false;
   for (const imageId of removed) { try { await cleanup(db, actor, imageId); } catch { cleanupPending = true; } }
   return { variety: publicVariety(variety), cleanupPending };

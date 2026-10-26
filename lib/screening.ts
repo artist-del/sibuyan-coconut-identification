@@ -25,13 +25,26 @@ export const screeningSchema = z.object({
 export type Screening = z.infer<typeof screeningSchema>;
 
 export function screeningFailureMessage(error: unknown, phase: "load" | "run") {
-  const detail = error instanceof Error ? error.message : "";
+  // Inspect nested runtime causes locally, but never display their raw text:
+  // messages can contain storage URLs, query strings, or device details.
+  const details: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current; depth++) {
+    if (typeof current === "string") { details.push(current); break; }
+    if (typeof current !== "object") break;
+    const entry = current as { name?: unknown; message?: unknown; cause?: unknown };
+    if (typeof entry.name === "string") details.push(entry.name);
+    if (typeof entry.message === "string") details.push(entry.message);
+    current = entry.cause;
+  }
+  const detail = details.join(" ");
+  if (/out of memory|memory access|allocation|array buffer|memory\.grow|bad_alloc/i.test(detail)) return "This browser ran out of memory while screening [MODEL_MEMORY]. Close other tabs, reload this page and retry with a smaller photo.";
+  if (/no available backend|failed to create.*session|initialize.*backend|initWasm|wasm|webassembly|simd|SharedArrayBuffer|worker|compileerror/i.test(detail)) return "The image screening engine could not start in this browser [MODEL_ENGINE]. Update Chrome, reload the page and retry. On a phone, open the site over HTTPS.";
   if (/Failed to fetch|NetworkError|network request|Load failed|fetch failed/i.test(detail)) return "Model download failed [MODEL_NETWORK]. Chrome could not fetch a required model or engine file. Try this site in Chrome Incognito with the same connection, then retry. No image identification was completed.";
   if (/QuotaExceededError|CacheStorage|cache\.match|cache\.put|protobuf/i.test(detail)) return "Model cache recovery failed [MODEL_CACHE]. Chrome could not read or store the model. Free some device storage, reload the page and retry.";
   if (/timeout/i.test(detail)) return "Image screening took too long. Keep this tab open while the model downloads, then retry. The first download can take several minutes on mobile.";
-  if (/out of memory|memory access|allocation|array buffer|memory\.grow/i.test(detail)) return "This browser ran out of memory while screening. Close other tabs, reload this page and retry with a smaller photo.";
-  if (/wasm|webassembly|simd|SharedArrayBuffer|worker|compileerror/i.test(detail)) return "The image screening engine could not start in this browser. Update Chrome or Safari, reload the page and retry. On a phone, open the site over HTTPS.";
-  return phase === "load" ? "Unable to download or start the screening model. Check your connection, keep the page open and retry. A content blocker may also block model downloads." : "The screening model could not process this photo. Reload the page and retry with a smaller JPEG or PNG. If it continues, try an updated Chrome or Safari browser.";
+  if (/importing a module|dynamically imported module|ChunkLoadError|loading chunk/i.test(detail)) return "The screening application files could not load [MODEL_APP_FILES]. Reload the page to get the current app version and retry.";
+  return phase === "load" ? "Screening startup failed [MODEL_START_UNKNOWN]. The browser did not provide a recognized failure reason. Open the same site in Chrome Incognito, retry and report this code with your phone model and Chrome version." : "The screening model could not process this photo [MODEL_RUN_UNKNOWN]. Reload the page and retry with a smaller JPEG or PNG. If it continues, try an updated Chrome or Safari browser.";
 }
 export function createImageScreener(load: () => Promise<(file: File) => Promise<unknown>>, timeoutMs = 600_000) {
   let cached: ReturnType<typeof load> | null = null;
